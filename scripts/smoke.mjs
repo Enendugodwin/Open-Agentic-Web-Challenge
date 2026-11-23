@@ -2,7 +2,7 @@
 // Post-deploy smoke checks (PROJECT_PLAN.md §10.1), run from a different origin
 // than the deployment (e.g. a CI runner).
 //
-//   node scripts/smoke.mjs --url https://shift-handoff.vercel.app
+//   node scripts/smoke.mjs --url https://greenleaf-market.vercel.app
 //
 // Vercel preview deployments behind Deployment Protection: set
 // VERCEL_AUTOMATION_BYPASS_SECRET and the bypass header is added to every request.
@@ -37,13 +37,13 @@ await check("T-SMK-01", "agent-manifest.json is public with CORS", async () => {
   expect(r.headers.get("access-control-allow-origin") === "*", "missing Access-Control-Allow-Origin: *");
   expect(!r.headers.get("access-control-allow-credentials"), "must not allow credentials");
   manifest = await r.json();
-  const entry = manifest.networks?.find((n) => n.name === "volunteer_desk");
-  expect(entry?.front_man && entry?.hocon, "volunteer_desk entry with front_man and hocon");
+  const entry = manifest.networks?.find((n) => n.name === "market_assistant");
+  expect(entry?.front_man && entry?.hocon, "market_assistant entry with front_man and hocon");
   expect(manifest.llm_router?.base_url?.startsWith(base), "llm_router.base_url points at this deployment");
 });
 
 await check("T-SMK-02", "network JSON is public, CORS, resolved", async () => {
-  const entry = manifest?.networks?.find((n) => n.name === "volunteer_desk");
+  const entry = manifest?.networks?.find((n) => n.name === "market_assistant");
   expect(entry, "needs manifest");
   const r = await fetch(new URL(entry.hocon, `${base}/agents/`), { headers: { Origin: FOREIGN, ...extra } });
   expect(r.status === 200, `status ${r.status}`);
@@ -89,7 +89,18 @@ await check("T-SMK-05", "public MCP: preflight and tools/list from another origi
   });
   expect(r.status === 200, `status ${r.status}`);
   const body = await r.json();
-  expect(body.result?.tools?.some((t) => t.name === "list_shifts"), "list_shifts listed");
+  expect(body.result?.tools?.some((t) => t.name === "match_ingredients"), "match_ingredients listed");
+});
+
+await check("T-SMK-MCP", "public MCP matches a recipe line from another origin", async () => {
+  const r = await fetch(`${base}/api/mcp/public`, {
+    method: "POST",
+    headers: { Origin: FOREIGN, "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-06-18", ...extra },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "match_ingredients", arguments: { ingredients: ["400 g spaghetti"] } } }),
+  });
+  expect(r.status === 200 && r.headers.get("access-control-allow-origin") === "*", `status ${r.status}`);
+  const data = JSON.parse((await r.json()).result.content[0].text);
+  expect(data.items?.[0]?.status === "matched", "spaghetti matched");
 });
 
 await check("T-SMK-06", "private endpoints send no CORS headers", async () => {
@@ -98,6 +109,10 @@ await check("T-SMK-06", "private endpoints send no CORS headers", async () => {
   });
   expect(r.status === 403, `cross-origin inference returned ${r.status}, expected 403`);
   expect(!r.headers.get("access-control-allow-origin"), "inference must not be CORS-enabled");
+  const cart = await fetch(`${base}/api/cart/quote`, {
+    method: "POST", headers: { Origin: FOREIGN, "Content-Type": "application/json", ...extra }, body: '{"items":[]}',
+  });
+  expect(cart.status === 403 && !cart.headers.get("access-control-allow-origin"), `cross-origin cart quote returned ${cart.status}, expected 403 without CORS`);
 });
 
 await check("T-SMK-CSP", "pages send a CSP without inline scripts", async () => {

@@ -3,49 +3,54 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Northside Pantry · Volunteer shifts (demo)</title>
-  <meta name="description" content="Open agentic web demo: find volunteer shifts yourself, ask the site's agent, or load the agent network from another site." />
+  <title>Greenleaf Market · Recipe to cart (demo store)</title>
+  <meta name="description" content="Open agentic web demo store: give the shopping assistant a recipe and it finds every ingredient." />
   <link rel="stylesheet" href="/styles.css" />
   <link rel="alternate" type="application/json" href="/agents/agent-manifest.json" title="Agent manifest" />
 </head>
 <body>
   <header class="top">
-    <div class="wrap">
-      <a class="brand" href="/">Northside Pantry</a>
-      <span class="tag">Demo site · synthetic data</span>
+    <div class="wrap bar">
+      <a class="brand" href="/">Greenleaf Market</a>
+      <span class="tag">Demo store · synthetic data</span>
+      <a class="cart-link" href="/cart.html">Cart <span data-cart-count>0</span></a>
     </div>
   </header>
 
   <main class="wrap">
     <section class="hero">
-      <h1>Volunteer this week</h1>
-      <p>Pick a shift below, or ask our volunteer desk agent. You don't need an AI account or key; the site provides the model for its own agent.</p>
-      <p><a class="button" href="/agents/">Ask the volunteer desk agent</a></p>
+      <h1>Got a recipe? We'll find every ingredient.</h1>
+      <p>Paste a recipe, or just name a dish, and our shopping assistant matches each ingredient to a product, suggests pack sizes and substitutes, and fills your cart after you confirm. You don't need an AI account or key.</p>
+      <p><a class="button" href="/agents/">Shop a recipe with the assistant</a></p>
     </section>
 
-    <section aria-labelledby="shifts-h">
-      <h2 id="shifts-h">Open shifts, next two weeks</h2>
-      <p class="muted" id="shifts-status">Loading shifts…</p>
-      <table class="shifts" id="shifts" hidden>
-        <thead><tr><th>Date</th><th>Time</th><th>Role</th><th>Spots left</th></tr></thead>
-        <tbody></tbody>
-      </table>
+    <section aria-labelledby="shop-h">
+      <h2 id="shop-h">Browse the store</h2>
+      <form id="search" class="search" role="search">
+        <label class="sr-only" for="q">Search products</label>
+        <input id="q" name="q" type="search" placeholder="Search products, e.g. olive oil" maxlength="100" autocomplete="off" />
+        <button type="submit">Search</button>
+      </form>
+      <div id="categories" class="chips" aria-label="Categories"></div>
+      <p class="muted" id="status" role="status">Loading products…</p>
+      <ul id="products" class="grid"></ul>
     </section>
 
     <section aria-labelledby="dev-h" class="dev">
       <h2 id="dev-h">For agent builders</h2>
-      <p>This site publishes an open agent network that conforms to the
+      <p>This store publishes an open agent network that conforms to the
         <a href="https://github.com/cognizant-ai-labs/agentic-web/blob/main/docs/worldwide_agentic_web_mvp_spec.md">Worldwide Agentic Web MVP profile</a>.
-        A conforming runtime on another origin can load it after its user approves, and run it in that user's browser with the caller's own model.</p>
+        A conforming runtime on another origin, such as a recipe site, can load it after its user approves, and run it in that user's browser with the caller's own model.</p>
       <ul>
-        <li>Peer network URL: <code id="peer-url">/agents/volunteer_desk</code></li>
-        <li><a href="/agents/agent-manifest.json">agent-manifest.json</a> · <a href="/agents/volunteer_desk.network.json">volunteer_desk.network.json</a> · <a href="/agents/links.json">links.json</a> (CORS enabled)</li>
-        <li>Public read-only MCP server: <code id="mcp-url">/api/mcp/public</code> (tool <code>list_shifts</code>)</li>
+        <li>Peer network URL: <code id="peer-url">/agents/market_assistant</code></li>
+        <li><a href="/agents/agent-manifest.json">agent-manifest.json</a> · <a href="/agents/market_assistant.network.json">market_assistant.network.json</a> · <a href="/agents/links.json">links.json</a> (CORS enabled)</li>
+        <li>Public read-only MCP server: <code id="mcp-url">/api/mcp/public</code> (tools <code>match_ingredients</code>, <code>search_products</code>)</li>
+        <li>Cart changes stay on this site: the <code>add_to_cart</code> action runs only here, after the shopper confirms.</li>
       </ul>
     </section>
   </main>
 
-  <footer class="wrap muted">Northside Pantry is fictional. Shift data is generated for demonstration.</footer>
+  <footer class="wrap muted">Greenleaf Market is fictional. Products, prices and stock are generated for demonstration. Checkout is not available.</footer>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

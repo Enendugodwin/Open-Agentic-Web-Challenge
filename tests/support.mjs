@@ -2,7 +2,7 @@
 // OpenAI-compatible streaming LLM.
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,7 +14,8 @@ export const AGENTS_DIR = path.join(root, ".build-test/agents");
 /** Build artifacts for SITE_ORIGIN unless an up-to-date build exists. */
 export function ensureAgentsBuilt() {
   const manifest = path.join(AGENTS_DIR, "agent-manifest.json");
-  const sources = [path.join(root, "agents/volunteer_desk.hocon"), path.join(root, "scripts/build-agents.mjs")];
+  const sources = [path.join(root, "scripts/build-agents.mjs"), path.join(root, "agents/market_assistant.hocon"),
+    ...readdirSync(path.join(root, "agents/sites/market_assistant")).map((f) => path.join(root, "agents/sites/market_assistant", f))];
   const fresh = existsSync(manifest)
     && readFileSync(manifest, "utf8").includes(SITE_ORIGIN)
     && sources.every((s) => statSync(s).mtimeMs < statSync(manifest).mtimeMs);

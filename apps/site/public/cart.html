@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your cart · Greenleaf Market (demo store)</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap bar">
+      <a class="brand" href="/">Greenleaf Market</a>
+      <span class="tag">Demo store · synthetic data</span>
+      <a class="cart-link" href="/cart.html" aria-current="page">Cart <span data-cart-count>0</span></a>
+    </div>
+  </header>
+  <main class="wrap">
+    <h1>Your cart</h1>
+    <p class="muted" id="status" role="status"></p>
+    <table class="cart" id="cart" hidden>
+      <thead><tr><th>Product</th><th>Size</th><th>Price</th><th>Qty</th><th>Total</th><th><span class="sr-only">Remove</span></th></tr></thead>
+      <tbody></tbody>
+      <tfoot><tr><th colspan="4">Subtotal</th><th id="subtotal"></th><th></th></tr></tfoot>
+    </table>
+    <p class="actions">
+      <a class="button" href="/agents/">Shop another recipe</a>
+      <button type="button" id="clear" class="ghost">Empty cart</button>
+      <button type="button" disabled title="This is a demo store">Checkout (not available in the demo)</button>
+    </p>
+  </main>
+  <script type="module" src="/cart.js"></script>
+</body>
+</html>

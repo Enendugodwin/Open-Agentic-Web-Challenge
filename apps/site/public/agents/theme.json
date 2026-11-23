@@ -1,22 +1,22 @@
 {
-  "brand": "Northside Pantry",
+  "brand": "Greenleaf Market",
   "icon": "",
-  "tagline": "Volunteer desk (demo data)",
+  "tagline": "Recipe to cart (demo store)",
   "hero": "",
   "font": "\"Segoe UI\", system-ui, sans-serif",
   "radius": 16,
   "colors": {
     "primary": "#15803d",
-    "accent": "#ca8a04",
-    "bg": "#f3f8f1",
-    "bg_tint": "#e3f1dc",
-    "fg": "#1c2b1a",
-    "muted": "#5f7258",
-    "border": "#d3e5c9",
-    "msgbg": "#e6f2df",
-    "panelbg": "#fafdf8"
+    "accent": "#ea580c",
+    "bg": "#f4f8f2",
+    "bg_tint": "#e2f0da",
+    "fg": "#18261a",
+    "muted": "#5b6e5c",
+    "border": "#d2e4c8",
+    "msgbg": "#e7f2e0",
+    "panelbg": "#fbfdf9"
   },
   "welcome": null,
-  "style": "\n.ns-settings{display:none!important}\n",
-  "body": "<div id=\"app\" data-ns-layout=\"fixed\">Loading Volunteer Desk...</div>\n"
+  "style": "\n.ns-settings{display:none!important}\n.gm-nav{display:flex;gap:16px;padding:8px 16px;font:600 14px var(--ns-font)}\n.gm-nav a{color:var(--ns-primary);text-decoration:none}\n.gm-nav a:last-child{margin-left:auto}\n",
+  "body": "<div id=\"app\" data-ns-layout=\"fixed\">Loading the Greenleaf Market shopping assistant...</div>\n"
 }

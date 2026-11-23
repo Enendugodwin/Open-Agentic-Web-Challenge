@@ -21,7 +21,7 @@ and confirms site actions. nsDeploy is the spec's reference implementation (spec
   site-funded router therefore can't run (see ADR 0002).
 - The resolver at this commit fails on the object form of an MCP reference
   (`{url, tools}`), with `TypeError: unhashable type` in `resolve.py` `build_plan`.
-  We use the string form. Our public MCP server exposes only `list_shifts`, so this
+  We use the string form. Our public MCP server exposes only read-only tools, so this
   loses nothing. This is worth reporting upstream.
 - The runtime's own limits cover composition depth (5), cycles, agent invocations,
   remote calls and tool concurrency (4).

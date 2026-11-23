@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Build the published agent artifacts for one deployment origin.
 //
-//   node scripts/build-agents.mjs --site-url https://shift-handoff.vercel.app [--out DIR]
+//   node scripts/build-agents.mjs --site-url https://greenleaf-market.vercel.app [--out DIR]
 //
 // 1. Substitute __SITE_ORIGIN__ in agents/*.hocon (so the published JSON is fully
 //    resolved, spec §2).
@@ -19,7 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const NETWORK = "volunteer_desk";
+const NETWORK = "market_assistant";
 
 function parseArgs(argv) {
   const args = { out: path.join(root, "apps/site/public/agents") };
@@ -28,7 +28,7 @@ function parseArgs(argv) {
     else if (argv[i] === "--out") args.out = path.resolve(argv[++i]);
     else throw new Error(`Unknown argument: ${argv[i]}`);
   }
-  if (!args.siteUrl) throw new Error("--site-url is required (e.g. https://shift-handoff.vercel.app)");
+  if (!args.siteUrl) throw new Error("--site-url is required (e.g. https://greenleaf-market.vercel.app)");
   const url = new URL(args.siteUrl);
   const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
   if (url.protocol !== "https:" && !(loopback && url.protocol === "http:")) {
@@ -64,6 +64,9 @@ function lint(out, origin) {
     if (!text.includes(`${origin}/api/mcp/public`)) problems.push("network JSON does not reference this origin's MCP server");
   }
   JSON.parse(readFileSync(path.join(out, "links.json"), "utf8"));
+  if (manifest.actions?.module !== "./actions.js" || !existsSync(path.join(out, "actions.js"))) {
+    problems.push("site action module (actions.js) missing from the manifest or bundle");
+  }
   // Published artifacts must never carry secrets.
   const secretPattern = /(sk-[A-Za-z0-9_-]{16,}|swa_(at|rt)_[A-Za-z0-9]+|Bearer\s+[A-Za-z0-9._-]{12,})/;
   for (const file of ["agent-manifest.json", entry?.hocon, "links.json"].filter(Boolean)) {
@@ -102,7 +105,7 @@ function main() {
   // inference"); no BYOK route is offered in the MVP.
   const manifestPath = path.join(out, "agent-manifest.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  manifest.brand = "Northside Pantry volunteer desk";
+  manifest.brand = "Greenleaf Market shopping assistant";
   manifest.llm_router = {
     base_url: `${origin}/api/infer/v1`,
     mock: false,
@@ -111,7 +114,7 @@ function main() {
     note: "Publisher-funded default router for this site's own runtime. Informational for peers: a caller always uses its own router.",
   };
   manifest.deployment = { ...(manifest.deployment || {}), direct_byok: false, site_funded_inference: true };
-  manifest.mcp = [{ url: `${origin}/api/mcp/public`, tools: ["list_shifts"], auth: "none", effect: "read" }];
+  manifest.mcp = [{ url: `${origin}/api/mcp/public`, tools: ["match_ingredients", "search_products"], auth: "none", effect: "read" }];
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
   // Vercel serves headers from vercel.json; drop the generic host files.

@@ -1,6 +1,8 @@
-# Project Plan: Shift Handoff (working name)
+# Project Plan: Greenleaf Market, recipe to cart (working name)
 
-An open agentic test website, hosted on Vercel, where a person starts a small task and lets the AI agent they already use continue it with scoped, revocable access.
+An open agentic test website, hosted on Vercel: a fictional supermarket. A person has a recipe, and an AI agent goes into the store and gets every ingredient into their cart. That agent is either the store's own assistant or the agent the person already uses, with scoped, revocable access. The person confirms before anything is added.
+
+> **Scenario change (`docs/adr/0004`):** the first draft of this plan used a volunteer-shift booking site. The architecture, spec mapping and security design are unchanged. The task is now "recipe → ingredients → cart", the read capability is ingredient matching, and the confirmed write is adding to the cart.
 
 **Sources and verification status**
 
@@ -18,10 +20,10 @@ An open agentic test website, hosted on Vercel, where a person starts a small ta
 
 One task, one public agent network, one read-only grounded capability, one user-confirmed write, and one authorization-link handoff.
 
-- **Task:** Find and book a volunteer shift at a fictional community food bank ("Northside Pantry"). The data is synthetic and public, apart from the user's own task draft and booking.
-- **Spec path (mandatory):** The site publishes `agent-manifest.json`, a resolved `volunteer_desk.network.json` (two agents), and `links.json` under `/agents/`, all with CORS enabled. A browser JavaScript runtime on the site runs the network using a publisher-funded default router, so visitors never configure an LLM. The grounded capability is a public, read-only MCP tool, `list_shifts`. The write, `book_shift`, is a registered local site action, and the runtime asks the user to confirm it.
-- **Interop proof:** A second Vercel project on a separate origin (`peer-caller`) loads `volunteer_desk` by URL after the user approves contacting that origin, and runs it in the caller's browser with the caller's router. It also publishes a small network of its own (`commute_helper`), which our site loads by its name in `links.json`.
-- **Extension (product-specific, outside the spec):** "Hand off to my agent." The site creates a short-lived link. That link only points to the task; it is not a credential. The user's existing MCP-capable agent connects to an authenticated MCP endpoint and goes through OAuth 2.1 with PKCE. The user approves the scopes on the site, and the approval is bound to that task and that agent. The agent can read the task and propose a booking. Only the user, clicking on the site, can confirm it. The user can see the grant, its audit log and a Revoke button.
+- **Task:** The user has a recipe (pasted text or a dish name). An AI agent matches every ingredient to a product at a fictional supermarket ("Greenleaf Market") with pack counts, prices and substitutes, and puts them in the user's cart after the user confirms. The catalog is synthetic and public. The user's own data is their shopping task and cart. Checkout is out of scope.
+- **Spec path (mandatory):** The site publishes `agent-manifest.json`, a resolved `market_assistant.network.json` (two agents: `assistant` → `ingredient_finder`), and `links.json` under `/agents/`, all with CORS enabled. A browser JavaScript runtime on the site runs the network using a publisher-funded default router, so visitors never configure an LLM. The grounded capability is a public, read-only MCP server with `match_ingredients` and `search_products`. The write, `add_to_cart`, is a registered local site action, and the runtime asks the user to confirm it.
+- **Interop proof:** A second Vercel project on a separate origin (`peer-caller`, a recipe website) loads `market_assistant` by URL after the user approves contacting that origin. It runs the network in the caller's browser with the caller's router, so "what do I need to buy for this recipe?" is answered from the store's catalog. It also publishes a small network of its own (`recipe_helper`), which the store loads by its name in `links.json`.
+- **Extension (product-specific, outside the spec):** "Hand off to my agent." The site creates a short-lived link. That link only points to the task; it is not a credential. The user's existing MCP-capable agent connects to an authenticated MCP endpoint and goes through OAuth 2.1 with PKCE. The user approves the scopes on the site, and the approval is bound to that task and that agent. The agent can read the shopping task, match its recipe against the catalog and propose a cart. Only the user, clicking on the store's site, can confirm it. The user can see the grant, its audit log and a Revoke button.
 - **Not in the MVP:** a BYOK screen, site-owned AI in the handoff flow, multiple task types, a central registry, coded-tool bundles, or cross-site action transport.
 
 ---
@@ -30,10 +32,10 @@ One task, one public agent network, one read-only grounded capability, one user-
 
 | Item | Content |
 | --- | --- |
-| Working name | Shift Handoff (demo organization: Northside Pantry) |
-| Target user | Someone who already uses an AI agent with MCP support (for example Claude, ChatGPT connectors, VS Code, Cursor or Kiro; check each client's remote-MCP and OAuth support in M0) and wants that agent to finish a website task for them. |
+| Working name | Greenleaf Market, recipe to cart (fictional supermarket) |
+| Target user | Someone who already uses an AI agent with MCP support (for example Claude, ChatGPT connectors, VS Code, Cursor or Kiro; check each client's remote-MCP and OAuth support in M0) and wants that agent to do their grocery shopping for a recipe. |
 | Problem | Websites either ignore the user's agent, or demand a password, an API key or broad access before the agent can help. Agents that scrape pages act without scoped consent and without a record. |
-| Product promise | Start a task on the site, give your own agent a link, approve exactly what it may see and propose, confirm any change yourself, and revoke access at any time. The site never asks for an LLM key. |
+| Product promise | Bring a recipe. The store's assistant, or your own agent, finds every ingredient, flags substitutes and missing items, and proposes a cart. You approve exactly what an outside agent may see and propose, confirm the cart yourself, and can revoke access at any time. The site never asks for an LLM key. |
 | Why it matters for the open agentic web | It shows both halves of the problem on ordinary HTTPS hosting. The first half is the spec's portable, public, browser-run agent network, which any conforming site can load. The second is a candid design for the part the spec leaves out: authenticated actions on the user's behalf by an agent the site did not choose (spec §1.1, §3.2 "Interactive MCP authentication", §7 "Authenticated MCP and hosted bridges"). |
 
 ## 2. Product boundaries
@@ -42,17 +44,18 @@ One task, one public agent network, one read-only grounded capability, one user-
 
 | ID | Journey | Path |
 | --- | --- | --- |
-| J1 | A visitor browses shifts and asks the site's agent "which Saturday morning shifts have space?". The answer comes from the `list_shifts` MCP tool. | Spec (local run, default router) |
-| J2 | A visitor asks the site's agent to book a shift. The runtime shows the destination, the action and its arguments. The visitor confirms, and a receipt is shown. | Spec (local site action) |
-| J3 | A user on `peer-caller` asks its agent about volunteering. They approve contact with our origin, our network loads and runs in their browser, and the answer comes back. | Spec (peer loading) |
-| J4 | The user starts a task draft (preferences: days, skills, notes), clicks "Hand off to my agent", copies the link and gives it to their agent. | Extension |
+| J1 | A shopper pastes a recipe (or names a dish) into the store's assistant. They get every ingredient as a product with pack count and price, substitutes for out-of-stock items, a list of items the store does not sell, and an estimated total. The data comes from the `match_ingredients` MCP tool. | Spec (local run, default router) |
+| J2 | The assistant proposes `add_to_cart`. The runtime shows the destination, the action and the exact items. The shopper confirms, the cart fills, and a receipt is shown. | Spec (local site action) |
+| J3 | A user on `peer-caller` (a recipe site) asks its agent what to buy for a recipe. They approve contact with the store's origin, the store's network loads and runs in their browser, and a shopping list with store products comes back. | Spec (peer loading) |
+| J4 | The shopper clicks "Shop with my own agent" on the store (optionally noting servings, dietary needs and budget), copies the link and gives it to their agent together with the recipe. | Extension |
 | J5 | The agent connects. The user signs in or is already signed in, reviews the agent's identity and the requested scopes, unticks anything unwanted and approves. | Extension |
-| J6 | The agent reads the task and shifts, then proposes a booking. The user confirms it on the site and the agent sees the result. | Extension |
+| J6 | The agent reads the task, matches its recipe against the catalog and proposes a cart. The user reviews the items on the store's site and confirms, and the agent sees the result. | Extension |
 | J7 | The user opens "Connected agents", reviews the audit log and revokes access. The agent's next call fails with 401. | Extension |
 
 ### 2.2 Non-goals
 
-- A generic platform with many tasks or capability types. A real food-bank integration or real personal data.
+- A generic platform with many tasks or capability types. A real supermarket integration, real inventory or real personal data.
+- Checkout, payment, delivery slots or orders. These are irreversible and handle payment data, so they come after the MVP.
 - An LLM or model setup screen in the core flow. BYOK is optional in spec §4 and deferred here.
 - Cross-site action transport (spec §3.2 marks it as an extension), A2A Agent Cards, durable or background agent runs.
 - Agents writing directly with no human confirmation, even with a write scope.
@@ -77,17 +80,17 @@ One task, one public agent network, one read-only grounded capability, one user-
 
 | Component | Responsibility | Hosting |
 | --- | --- | --- |
-| **Published artifacts** | `/agents/agent-manifest.json`, `/agents/volunteer_desk.network.json` (resolved JSON, built from HOCON source), `/agents/links.json`. Public, contain no secrets, CORS `*`, sent without credentials. | Vercel static output |
+| **Published artifacts** | `/agents/agent-manifest.json`, `/agents/market_assistant.network.json` (resolved JSON, built from HOCON source), `/agents/links.json`. Public, contain no secrets, CORS `*`, sent without credentials. | Vercel static output |
 | **Browser runtime** | Parses and validates networks, runs the agent loop, translates tools into function schemas, handles consent before contacting other origins, filters private context (`sly_data`), enforces execution limits, confirms site actions, reports unknown outcomes and keeps a trace. Default: vendor nsDeploy (D1). | Static JS module |
-| **User-facing site** | Shift list, task draft, chat panel (runtime UI), confirmation dialogs, "Hand off to my agent", "Connected agents" (grants, audit log, revoke), proposal review page. | Next.js on Vercel |
+| **User-facing site** | Store front (search, categories, add to cart), cart page, assistant chat (runtime UI), confirmation dialogs, "Shop with my own agent", "Connected agents" (grants, audit log, revoke), cart-proposal review page. | Static pages + Vercel Functions (ADR 0003) |
 | **Default inference endpoint** `/api/infer` | Same-origin, OpenAI-compatible forwarding endpoint that uses a publisher-owned key from an env var. Rate limited, with a capped token budget and a kill switch. It serves only the site's own runtime and is never used in the handoff path. | Vercel Function |
-| **Public MCP** `/api/mcp/public` | Read-only tool `list_shifts` over public synthetic data. No auth. CORS `*` so peer callers' browsers can reach it. | Vercel Function |
-| **Site action endpoint** `/api/actions/book` | Business write for `book_shift`. Same-origin only, session cookie plus CSRF token, idempotency key. | Vercel Function |
+| **Public MCP** `/api/mcp/public` | Read-only tools `match_ingredients` and `search_products` over the public synthetic catalog. No auth. CORS `*` so peer callers' browsers can reach it. | Vercel Function |
+| **Cart endpoints** `/api/cart/*` | `quote` validates ids, stock and quantities and returns server prices (built). The server-side cart write for confirmed agent proposals comes in M5: same-origin only, session cookie plus CSRF token, idempotency key. | Vercel Function |
 | **Identity and session** | Guest account created when the task starts (HttpOnly, Secure, SameSite=Lax cookie). Optional upgrade to a passkey (WebAuthn). Re-authentication is required on the consent page if the session is more than 12 h old. | Vercel Function + DB |
 | **Authorization service** (extension) | Narrow OAuth 2.1 authorization server: Protected Resource Metadata (RFC 9728), AS metadata (RFC 8414), Client ID Metadata Documents and Dynamic Client Registration (RFC 7591), authorization code with PKCE S256 only, resource indicators (RFC 8707), opaque tokens stored hashed, refresh-token rotation, revocation (RFC 7009). Consent UI is bound to a handoff. | Vercel Functions + DB |
-| **Authenticated MCP bridge** `/api/mcp` (extension) | Tools for the user's agent: `get_task`, `list_shifts`, `propose_booking`, `get_proposal_status`. Each call validates the token, grant, scope, task binding, expiry and revocation. | Vercel Function |
+| **Authenticated MCP bridge** `/api/mcp` (extension) | Tools for the user's agent: `get_task`, `match_ingredients`, `search_products`, `propose_cart`, `get_proposal_status`. Each call validates the token, grant, scope, task binding, expiry and revocation. | Vercel Function |
 | **Database** | Postgres from the Vercel Marketplace (default: Neon), with a separate branch for previews. | External managed service |
-| **peer-caller** (test fixture) | Independent origin: its own runtime, default router and the `commute_helper` network. Loads `volunteer_desk` by URL. | Second Vercel project |
+| **peer-caller** (test fixture) | Independent origin: a small recipe website with its own runtime, default router and the `recipe_helper` network. Loads `market_assistant` by URL. | Second Vercel project |
 | **Third-party agents** (optional integrations) | The user's MCP client, which supplies its own model. We integrate only through MCP and OAuth. | Not ours |
 
 ### 3.2 Component diagram
@@ -147,7 +150,7 @@ flowchart LR
 | Who runs the model | The caller site's active router | The user's own agent |
 | Authentication | None. Artifacts are public and fetched without credentials. | OAuth 2.1 access token bound to a grant |
 | User consent | The runtime's per-origin contact consent (spec §3.2 step 4, §5) | Scope consent on our site, plus per-write confirmation on our site |
-| Can it write user data? | Only through a local site action of the **caller's** origin. Our `book_shift` is never callable from a peer origin. | Only by creating a proposal that the user confirms |
+| Can it write user data? | Only through a local site action of the **caller's** origin. Our `add_to_cart` is never callable from a peer origin. | Only by creating a proposal that the user confirms |
 | Spec status | Mandatory | Extension. The spec says MCP authentication and cross-site actions are outside the minimum (§1.1, §3.2 MVP boundary, §7). |
 
 ## 4. End-to-end flows
@@ -160,37 +163,37 @@ sequenceDiagram
   participant C as peer-caller runtime (origin B)
   participant S as Our origin (static)
   participant M as Our public MCP
-  U->>C: "Any volunteer shifts this weekend?"
-  C->>C: Resolve tool ref https://site/agents/volunteer_desk (direct URL or links.json name)
+  U->>C: "What do I need to buy for this lasagna recipe?"
+  C->>C: Resolve tool ref https://site/agents/market_assistant (direct URL or links.json name)
   C->>U: Consent: contact https://site to fetch agent network?
   U-->>C: Approve (this session, this origin)
   C->>S: GET /agents/agent-manifest.json (credentials: omit)
   S-->>C: 200 + Access-Control-Allow-Origin: *
-  C->>C: Select the entry named exactly "volunteer_desk", otherwise fail
+  C->>C: Select the entry named exactly "market_assistant", otherwise fail
   C->>S: GET hocon path from the manifest
   C->>C: Validate the network, apply sly_data allow rules, depth and budget limits
-  C->>C: Run desk -> shift_finder with the CALLER's router
-  C->>U: Consent: call MCP at https://site/api/mcp/public (list_shifts)?
+  C->>C: Run assistant -> ingredient_finder with the CALLER's router
+  C->>U: Consent: call MCP at https://site/api/mcp/public (match_ingredients)?
   U-->>C: Approve
-  C->>M: tools/call list_shifts {date_from, date_to}
-  M-->>C: Shift list (public data)
+  C->>M: tools/call match_ingredients {ingredients: [...]}
+  M-->>C: Products, packs, prices, substitutes (public data)
   C-->>U: Answer returns through the normal tool-result path
 ```
 
-A redirect to another origin counts as a new destination and needs its own consent (spec §5). The peer's manifest router metadata is ignored for inference (spec §4).
+The peer cannot fill the store's cart: `add_to_cart` is a local-only action of the store's origin, so the recipe site gets a shopping list, not a cart change. A redirect to another origin counts as a new destination and needs its own consent (spec §5). The peer's manifest router metadata is ignored for inference (spec §4).
 
 ### 4.1 Extension flows (a)–(f)
 
-**(a) User starts a task.** The user opens the site. The server creates a guest account and session, and the user fills in a draft (days, skills, notes). The task is stored as `status=draft` with `owner=user`.
+**(a) User starts a task.** The user opens the store and clicks "Shop with my own agent". The server creates a guest account and session, and the user can note servings, dietary needs, a budget and free-text notes. The shopping task is stored as `status=draft` with `owner=user`. The recipe itself usually stays with the user's agent.
 
-**(b) User shares or opens the link in their agent.** The user clicks "Hand off to my agent". The server creates a handoff record: a 128-bit random reference (`hr_…`), bound to the task and the owner, with a 15-minute TTL and a single claim. The UI shows:
+**(b) User shares or opens the link in their agent.** The user clicks "Shop with my own agent". The server creates a handoff record: a 128-bit random reference (`hr_…`), bound to the task and the owner, with a 15-minute TTL and a single claim. The UI shows:
 - the link `https://site/h/hr_…`, and
 - the MCP server URL `https://site/api/mcp`, with copy buttons and client-specific steps.
 
 The link is **not a credential**. Fetching it returns a descriptor (HTML for people, JSON for `Accept: application/json`) that holds only the MCP URL, the reference, the scopes the agent should request, the expiry and instructions. It contains no task data. Anyone who has only the link gets nothing without the owner's signed-in approval.
 
 **(c) Agent requests access.**
-1. The agent calls `/api/mcp` and receives 401 with `WWW-Authenticate: Bearer resource_metadata=…, scope="task.read shifts.read booking.propose"`.
+1. The agent calls `/api/mcp` and receives 401 with `WWW-Authenticate: Bearer resource_metadata=…, scope="task.read catalog.read cart.propose"`.
 2. The agent discovers the authorization server and identifies itself. Preferred: a Client ID Metadata Document, an HTTPS URL that we fetch and check. Fallback: Dynamic Client Registration, shown to the user as "unverified".
 3. The agent opens `/oauth/authorize` in the user's browser with PKCE S256, `resource=https://site/api/mcp`, an exact `redirect_uri` and `state`.
 
@@ -209,9 +212,9 @@ On "Approve", the server takes these steps in one transaction:
 The agent exchanges the code for an opaque access token (15 min) and a rotating refresh token (capped at the grant's expiry). The token's audience is `/api/mcp`. Deny, or closing the page, writes an audit event and returns `access_denied`.
 
 **(e) Agent reads or proposes a write.**
-- *Read:* `get_task` returns only the approved fields. `list_shifts` returns public data.
-- *Propose:* `propose_booking {shift_id, request_id}` checks that the shift is open and the user is eligible. It then creates a proposal `{grant, action: book_shift, args, request_id, status: pending, expires 30 min}` and returns `{proposal_id, review_url, status: "pending_user_confirmation"}`. The agent tells the user to open `review_url`. Optional, if the client supports it: MCP URL-mode elicitation to open the same page.
-- The review page, on our origin and requiring the session, shows the destination (Northside Pantry, `site` origin), the action, the arguments, which agent proposed it, and the time. Confirm calls `/api/actions/book` with the CSRF token and `idempotency_key = proposal_id`.
+- *Read:* `get_task` returns only the approved fields. `match_ingredients` and `search_products` return public catalog data.
+- *Propose:* `propose_cart {items: [{product_id, quantity}], request_id}` re-validates every id, quantity and stock level on the server. It then creates a proposal `{grant, action: add_to_cart, args, args_hash, request_id, status: pending, expires 30 min}` and returns `{proposal_id, review_url, status: "pending_user_confirmation"}`. The agent tells the user to open `review_url`. Optional, if the client supports it: MCP URL-mode elicitation to open the same page.
+- The review page, on our origin and requiring the session, shows the destination (Greenleaf Market, `site` origin), the action, every item with pack count and server price, the total, which agent proposed it, and the time. The user can untick items. Confirm calls `/api/cart/confirm` with the CSRF token and `idempotency_key = proposal_id`. Unticking items creates a reviewed subset; the hash binds what was confirmed.
 - Result states: `confirmed` with a receipt ID, `rejected`, `expired`, or `unknown` (see §7.4). The agent polls `get_proposal_status`. **The model cannot confirm. No tool exists for confirming.**
 
 **(f) User revokes access.** "Connected agents" lists the grants with their agent, scopes, fields, expiry, last use and audit log. Revoke sets `grant.revoked_at` and deletes all tokens for that grant. Pending proposals are cancelled. Because tokens are looked up in the DB on every call, the next agent call returns 401 `invalid_token`. Revocation also works from the token side (RFC 7009) for agents that support it.
@@ -232,8 +235,8 @@ sequenceDiagram
   AS-->>A: redirect with code
   A->>AS: token (code + verifier)
   AS-->>A: access token (15 min) + refresh token
-  A->>R: (e) get_task / list_shifts
-  A->>R: propose_booking {shift_id, request_id}
+  A->>R: (e) get_task / match_ingredients(recipe lines)
+  A->>R: propose_cart {items, request_id}
   R-->>A: pending + review_url
   U->>U: Confirm on review page (CSRF, idempotency key = proposal_id)
   A->>R: get_proposal_status -> confirmed + receipt
@@ -249,23 +252,23 @@ Type: **M** = mandatory for MVP conformance, **O** = optional in the spec, **X**
 | # | Requirement (spec ref) | Type | Planned implementation | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Network follows the Neuro SAN HOCON data model; the published form is resolved and data-only, with no includes, env substitutions or local paths (§2, §2.2) | M | HOCON source in `agents/`; build step resolves it to JSON and injects the deployment origin into MCP URLs at build time; CI fails if `include`, `${` or file paths remain | CI log; the published JSON | Planned |
-| 2 | Minimum network content: name, description, front agent, unique agents, instructions, tool lists, JSON Schema inputs (§2.1) | M | `desk` (front) and `shift_finder`; input schemas on both agents; output schema for shift results | Schema validation test | Planned |
+| 2 | Minimum network content: name, description, front agent, unique agents, instructions, tool lists, JSON Schema inputs (§2.1) | M | `assistant` (front) and `ingredient_finder`; input schema `{ingredients: string[]}`; structured MCP output | Schema validation test | Planned |
 | 3 | `sly_data` denied by default across boundaries; only named fields pass (§2.1, §5) | M | Allow only `locale` downstream; `session_hint` never allowed. Check the exact HOCON `allow` syntax against the HOCON reference. | Peer trace shows `locale` present and `session_hint` absent | Planned |
 | 4 | `agent-manifest.json` with networks (name, `front_man`, `hocon`), top-site router metadata and peer policy; public GET with CORS (§3.3) | M | `/agents/agent-manifest.json`. The schema follows nsDeploy's manifest format (confirm in M0). | `curl` smoke check; independent-origin fetch | Planned |
-| 5 | Resolved network JSON at the manifest location; public GET; CORS when fetched cross-origin (§3.3) | M | `/agents/volunteer_desk.network.json` | Smoke check | Planned |
-| 6 | `links.json` publisher bindings; caller overrides stored separately (§3.3) | M | `{"version":1,"networks":{"volunteer_desk":{"commute":"https://<peer-caller>/agents/commute_helper"}}}`; runtime overrides kept in localStorage | Smoke check; override test | Planned |
+| 5 | Resolved network JSON at the manifest location; public GET; CORS when fetched cross-origin (§3.3) | M | `/agents/market_assistant.network.json` | Smoke check | Done locally |
+| 6 | `links.json` publisher bindings; caller overrides stored separately (§3.3) | M | `{"version":1,"networks":{"market_assistant":{"recipes":"https://<peer-caller>/agents/recipe_helper"}}}`; runtime overrides kept in localStorage | Smoke check; override test | Planned |
 | 7 | HTTPS in production (§3.3) | M | Vercel-managed TLS; runtime rejects `http:` peers except loopback | Test with an `http://` peer | Planned |
 | 8 | Runtime usable from a normal page; executes the graph in JS (§3) | M | Vendored nsDeploy runtime, or a minimal TypeScript runtime (D1) | Demo | Planned |
 | 9 | Parse and validate: reject malformed networks, duplicate or missing references and a bad front agent before any model call (§3.1) | M | Validator runs before the first `/api/infer` call | Negative fixtures; the network log shows zero inference calls | Planned |
 | 10 | Agent loop: streaming, tool calls, delegation, error propagation, bounded history (§3.1) | M | Runtime | E2E test | Planned |
-| 11 | MCP as the baseline grounded capability; approval before discovering or calling a third-party MCP service (§3.1) | M | `/api/mcp/public` `list_shifts`. Consent prompt when the runtime origin differs from the MCP origin. | Demo J1, J3 | Planned |
-| 12 | Local site actions with name, purpose, schema, effect and handler; validate arguments; show destination and arguments before a write (§3.1) | M | `book_shift` (effect: write) registered on our origin only | Screenshot of the confirmation dialog | Planned |
+| 11 | MCP as the baseline grounded capability; approval before discovering or calling a third-party MCP service (§3.1) | M | `/api/mcp/public` `match_ingredients`, `search_products`. Consent prompt when the runtime origin differs from the MCP origin. | Demo J1, J3 | Planned |
+| 12 | Local site actions with name, purpose, schema, effect and handler; validate arguments; show destination and arguments before a write (§3.1) | M | `add_to_cart` (effect: write, local-only) registered on our origin only | Screenshot of the confirmation dialog | Planned |
 | 13 | Accurate outcomes; a write timeout means unknown outcome; no automatic repeat (§3.1, §5) | M | Runtime "unknown" state; server reconciliation by idempotency key | Fault-injection test | Planned |
 | 14 | Bounded execution: depth, invocations, remote calls, concurrency, time (§3.1) | M | Defaults of depth 4, 30 invocations, 10 remote calls, 2 concurrent and 90 s, each configurable per network up to the runtime maximum | Over-budget and cycle tests | Planned |
-| 15 | Peer reference by URL; manifest at the site base; exact name match or fail (§3.2) | M | `https://site/agents/volunteer_desk` resolves with base `/agents/` | Wrong-name test fails visibly | Planned |
+| 15 | Peer reference by URL; manifest at the site base; exact name match or fail (§3.2) | M | `https://site/agents/market_assistant` resolves with base `/agents/` | Wrong-name test fails visibly | Planned |
 | 16 | Peer runs with the caller's router, policy and limits (§3.2) | M | Peer manifest router ignored | peer-caller manifest declares a fake router and the trace shows it is never contacted | Planned |
 | 17 | Consent for each third-party origin; redirects count as new destinations (§3.2, §5) | M | Runtime consent dialog showing origin and purpose; remembered for the session per origin | Cross-origin redirect test | Planned |
-| 18 | Per-hop policy and consent; cycles and over-budget requests stop (§3.2) | M | `volunteer_desk` → `commute_helper` → back to `volunteer_desk`, stopped by the depth or cycle limit | Visible error | Planned |
+| 18 | Per-hop policy and consent; cycles and over-budget requests stop (§3.2) | M | `market_assistant` → `recipe_helper` → back to `market_assistant`, stopped by the depth or cycle limit | Visible error | Planned |
 | 19 | Private context does not return through the result path unless allowed (§3.2) | M | Result filter | Test 3 in reverse | Planned |
 | 20 | Public artifact requests carry no private credentials (§3.4) | M | `fetch(..., {credentials:"omit"})`; artifacts served without `Access-Control-Allow-Credentials` | Header check | Planned |
 | 21 | Default inference without a visitor key (§4) | O (one inference path is required) | `/api/infer` proxy using a publisher key | Demo J1 | Planned |
@@ -287,11 +290,11 @@ Team assumption: **2–3 engineers** (one full-stack lead, one frontend/runtime 
 | M | Milestone | Key deliverables | Depends on | Acceptance criteria | Effort |
 | --- | --- | --- | --- | --- | --- |
 | M0 | Spikes and decisions | Decisions D1–D8 recorded; MCP client support matrix (A1); runtime license check (A2); stateless MCP on Vercel spike (A4); Vercel projects + Neon DB created | none | Written ADRs; a "hello" MCP tool reachable from at least two agents | 2–4 |
-| M1 | **First working vertical slice** | HOCON → JSON build; manifest, network and `links.json`; runtime on page; `/api/infer` with rate limit; `/api/mcp/public` `list_shifts`; production deploy | M0 | J1 works on the production URL; T-SMK-01 to 05 pass | 5–8 |
-| M2 | Local write + outcome handling | `book_shift` site action, confirmation dialog, idempotent endpoint, unknown-outcome state, receipt | M1 | J2 works; T-FN-04 and T-NEG-05 pass | 3–5 |
-| M3 | **Cross-origin interoperability** | `peer-caller` project on a separate origin; `commute_helper` network; consent UI; `sly_data` rules; limits; negative fixtures | M1 | J3 works both ways; T-INT-01 to 09 pass from the independent origin | 5–8 |
-| M4 | Handoff extension: auth + read | Guest sessions + optional passkey; handoff refs; OAuth AS (metadata, CIMD/DCR, authorize, token, refresh, revoke); consent UI; authenticated `/api/mcp` with `get_task` and `list_shifts`; audit events | M2 | J4 and J5 work with two real agents; T-SEC-01 to 08 pass | 7–11 |
-| M5 | Proposal write + revocation | `propose_booking`, review page, `get_proposal_status`, "Connected agents" page, revoke, audit view | M4 | J6 and J7 work; revocation takes effect on the next call | 4–6 |
+| M1 | **First working vertical slice** | HOCON → JSON build; manifest, network and `links.json`; runtime on page; `/api/infer` with rate limit; `/api/mcp/public` `match_ingredients`; production deploy | M0 | J1 works on the production URL; T-SMK-01 to 05 pass | 5–8 |
+| M2 | Local write + outcome handling | `add_to_cart` site action, confirmation dialog, server-side price/stock validation, idempotent cart write, unknown-outcome state, receipt | M1 | J2 works; T-FN-04 and T-NEG-05 pass | 3–5 |
+| M3 | **Cross-origin interoperability** | `peer-caller` recipe site on a separate origin; `recipe_helper` network; consent UI; `sly_data` rules; limits; negative fixtures | M1 | J3 works both ways; T-INT-01 to 09 pass from the independent origin | 5–8 |
+| M4 | Handoff extension: auth + read | Guest sessions + optional passkey; handoff refs; OAuth AS (metadata, CIMD/DCR, authorize, token, refresh, revoke); consent UI; authenticated `/api/mcp` with `get_task` and `match_ingredients`; audit events | M2 | J4 and J5 work with two real agents; T-SEC-01 to 08 pass | 7–11 |
+| M5 | Proposal write + revocation | Server-side cart; `propose_cart`, review page, `get_proposal_status`, "Connected agents" page, revoke, audit view | M4 | J6 and J7 work; revocation takes effect on the next call | 4–6 |
 | M6 | **Authorization hardening** | CSP/HSTS/framing headers; CSRF; rate limits per IP, client and grant; log redaction; refresh reuse detection; injection fixtures; threat-model review | M5 | All of T-SEC-* and T-NEG-* green; an external reviewer signs off on §9 | 3–6 |
 | M7 | **Deployment and demo preparation** | Production env vars; preview DB branch; smoke-check workflow on every deploy; screenshots; 2–3 min video; README; LICENSE; submission | M6 | Definition of done (§12) met; submission checklist rechecked against Devpost | 3–5 |
 | | **Total** | | | | **32–53 person-days, about 3–5 calendar weeks** |
@@ -306,24 +309,25 @@ The work splits into two parallel tracks after M1: M2 and M4 (backend) alongside
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /agents/agent-manifest.json` | Manifest |
-| `GET /agents/volunteer_desk.network.json` | Resolved network |
+| `GET /agents/market_assistant.network.json` | Resolved network |
 | `GET /agents/links.json` | Peer link map |
-| `POST /api/mcp/public` | MCP (Streamable HTTP, stateless, JSON responses). Tool `list_shifts`. |
+| `POST /api/mcp/public` | MCP (Streamable HTTP, stateless, JSON responses). Tools `match_ingredients`, `search_products`. |
 | `GET /h/{ref}` | Handoff descriptor (HTML or JSON). Returns no task data. Returns 404 whether the reference is unknown or expired, so references can't be probed. |
 | `GET /.well-known/oauth-protected-resource`, `GET /.well-known/oauth-authorization-server` | OAuth discovery |
 
-Illustrative manifest shape (finalize it against the nsDeploy schema in M0):
+Manifest as built (nsDeploy schema, abridged; see `apps/site/public/agents/agent-manifest.json`):
 
 ```json
 {
+  "brand": "Greenleaf Market shopping assistant",
   "networks": [
-    { "name": "volunteer_desk", "front_man": "desk", "hocon": "volunteer_desk.network.json",
-      "description": "Find volunteer shifts at Northside Pantry" }
+    { "name": "market_assistant", "front_man": "assistant", "hocon": "./market_assistant.network.json",
+      "description": "Shopping assistant for Greenleaf Market..." }
   ],
-  "llm": { "router": "/api/infer", "model": "<default-model>", "note": "informational for peers" },
-  "peer_policy": { "allowed_origins": ["https://<peer-caller-domain>"] },
-  "mcp": [{ "url": "https://<site>/api/mcp/public", "tools": ["list_shifts"] }],
-  "actions": [{ "name": "book_shift", "effect": "write", "origin": "same-site-only" }]
+  "llm_router": { "base_url": "https://<site>/api/infer/v1", "site_funded": true, "byok_router": "", "mock": false },
+  "peer_policy": { "mode": "open", "deny_origins": [] },
+  "mcp": [{ "url": "https://<site>/api/mcp/public", "tools": ["match_ingredients", "search_products"], "auth": "none", "effect": "read" }],
+  "actions": { "version": 1, "module": "./actions.js", "bridge": "./action-bridge.html" }
 }
 ```
 
@@ -331,13 +335,14 @@ Illustrative manifest shape (finalize it against the nsDeploy schema in M0):
 
 | Tool | Where | Scope | Input (JSON Schema summary) | Output | Authorization checks |
 | --- | --- | --- | --- | --- | --- |
-| `list_shifts` | public MCP, auth MCP | none / `shifts.read` | `{date_from: date, date_to: date (≤ 31 days), skill?: enum}` | `{shifts:[{id, start, end, role, spots_left}]}` | Public. Results capped at 50. |
-| `book_shift` | local site action (runtime) | session | `{shift_id: string, idempotency_key: uuid}` | `{status, receipt_id?}` | Session + CSRF + runtime confirmation; server checks spots left and that the user isn't already booked |
+| `match_ingredients` | public MCP, auth MCP | none / `catalog.read` | `{ingredients: string[1..40]}` (recipe lines, e.g. "400 g spaghetti") | `{items:[{input, parsed, status: matched\|substituted\|out_of_stock\|not_found, product, packs, line_total, alternatives, note}], summary}` | Public, read-only. Lines capped at 40. |
+| `search_products` | public MCP, auth MCP | none / `catalog.read` | `{query, category?, limit? ≤ 20}` | `{products:[{id, name, size, price, aisle, in_stock}]}` | Public, read-only |
+| `add_to_cart` | local site action (runtime) | store origin only | `{items:[{product_id, quantity 1..20}] (1..40)}` | `{status: added\|already_added\|nothing_added, receipt_id, added, rejected, cart}` | Runtime validation + confirmation; server re-prices and checks ids and stock (`/api/cart/quote`); idempotent per request ID |
 | `get_task` | auth MCP | `task.read` | `{task_ref?: string}` (optional; must match the grant's task if given) | `{task_id, status, preferences, notes?}`; fields filtered by the grant | Token valid, grant active, scope, field filter |
-| `propose_booking` | auth MCP | `booking.propose` | `{shift_id, request_id: uuid}` | `{proposal_id, status:"pending_user_confirmation", review_url, expires_at}` | Scope; the same `request_id` returns the same proposal; at most 3 open proposals per grant |
-| `get_proposal_status` | auth MCP | `booking.propose` | `{proposal_id}` | `{status: pending\|confirmed\|rejected\|expired\|unknown, receipt_id?}` | The proposal belongs to this grant |
+| `propose_cart` | auth MCP | `cart.propose` | `{items:[{product_id, quantity}], request_id: uuid}` | `{proposal_id, status:"pending_user_confirmation", review_url, expires_at}` | Scope; the same `request_id` returns the same proposal; at most 3 open proposals per grant |
+| `get_proposal_status` | auth MCP | `cart.propose` | `{proposal_id}` | `{status: pending\|confirmed\|rejected\|expired\|unknown, receipt_id?}` | The proposal belongs to this grant |
 
-There is no agent-callable confirm or cancel-booking tool in the MVP.
+There is no agent-callable confirm, checkout or payment tool in the MVP.
 
 ### 7.3 Authorization check on every authenticated MCP call (fail closed)
 
@@ -355,7 +360,7 @@ Any failure returns a typed MCP error (`unauthorized`, `forbidden_scope`, `grant
 
 - Every write carries a client request ID (`request_id` or `idempotency_key`). A unique DB constraint on `(grant_id|session_id, key)` makes retries return the original result.
 - The proposal is stored with `args_hash`. Confirmation executes only if the stored args still hash to the reviewed value. This binds the action, origin, arguments and request ID to what the user saw (spec §5).
-- Booking runs in one DB transaction. If the confirm request times out in the browser, the UI shows **"Outcome unknown, checking…"**. It then queries `GET /api/actions/book/{idempotency_key}` and **never re-sends the POST**. The server state is authoritative: `committed`, `not_found` (the user may retry with the *same* key) or `in_progress`.
+- The server-side cart write (M5) runs in one DB transaction. If the confirm request times out in the browser, the UI shows **"Outcome unknown, checking…"**. It then queries `GET /api/cart/confirm/{idempotency_key}` and **never re-sends the POST**. The server state is authoritative: `committed`, `not_found` (the user may retry with the *same* key) or `in_progress`.
 - MCP `get_proposal_status` reports `unknown` until the server has resolved the state.
 
 ### 7.5 Keeping credentials out of prompts and logs
@@ -372,15 +377,15 @@ Any failure returns a typed MCP error (`unauthorized`, `forbidden_scope`, `grant
 | --- | --- | --- | --- |
 | `user` | id, kind (guest/passkey), created_at | passkey public key (low), email (none collected in MVP) | Guests purged after 30 days of inactivity |
 | `session` | id_hash, user_id, created_at, last_auth_at, expires_at | session ID (stored hashed) | 7 days |
-| `task` | id, owner_id, status, preferences JSON, notes, created_at | `notes` (free text; may contain personal data) | 30 days after completion |
-| `shift` | id, start, end, role, capacity | none (synthetic) | Seed data |
+| `task` | id, owner_id, status, preferences JSON (servings, dietary needs, budget), notes, created_at | `preferences.dietary` (may reveal health or religion) and `notes` (free text) | 30 days after completion |
+| `product` | id, name, category, aisle, size, price_cents, tags, stock | none (synthetic) | Seed data (`lib/catalog.js`) |
 | `handoff` | ref_hash, task_id, owner_id, created_at, expires_at (15 min), claimed_at, claimed_by_grant | ref (hashed) | 7 days |
 | `oauth_client` | client_id, kind (cimd/dcr), name, redirect_uris, metadata_url, verified, first_seen | none | Until unused for 90 days |
 | `auth_code` | code_hash, grant_id, pkce_challenge, redirect_uri, expires_at (60 s), used_at | code (hashed) | 1 day |
 | `grant` | id, user_id, task_id, client_id, redirect_uri, scopes[], fields[], created_at, expires_at, revoked_at, last_used_at | none (metadata) | 90 days after it ends, for audit |
 | `token` | hash, grant_id, kind (access/refresh), family_id, expires_at, rotated_from, revoked_at | token (hashed) | Deleted at expiry or revocation |
 | `proposal` | id, grant_id, action, args JSON, args_hash, request_id, status, expires_at, decided_at | args (low) | 90 days |
-| `booking` | id, user_id, shift_id, idempotency_key, source (site_action/proposal), receipt_id, created_at | none | 1 year (synthetic demo) |
+| `cart` / `cart_line` | cart: id, user_id, updated_at; line: cart_id, product_id, quantity, price_cents_at_add, source (shopper/site_action/proposal), idempotency_key | Shopping habits (low) | 30 days after last change. The M2 slice keeps the cart in browser localStorage. |
 | `audit_event` | id, at, actor (user/agent:client_id/system), user_id, grant_id?, type, target, result, request_id, ip_hash | ip_hash | 90 days. Append-only (no UPDATE/DELETE privilege for the app role). |
 | Agent/network identity | Not stored. A peer network is identified at runtime by `(origin, network name, manifest URL)` in session consent memory. | none | Session only |
 
@@ -396,7 +401,7 @@ Any failure returns a typed MCP error (`unauthorized`, `forbidden_scope`, `grant
 | **Consent phishing**: an attacker's agent sends the victim an authorize URL | Consent refused unless the user has a pending handoff they created; page shows the agent's identity; `frame-ancestors 'none'` stops clickjacking | T-SEC-07 | The victim creates a handoff *and* follows the attacker's URL in that window |
 | **Confused deputy** | Our MCP server calls no third-party APIs and does no token passthrough; audience-bound tokens (RFC 8707); per-client consent, never skipped by a cookie for a new client_id; the grant is bound to one task | T-SEC-08: a token for client A used by client B, or with another task's ref, returns 403 | Low |
 | **Excessive scope** | Three narrow scopes; field-level opt-in for `notes`; no write scope at all (proposal only) | Review + T-FN-07 | none significant |
-| **Prompt injection**: task notes, shift text or peer instructions steer an agent | Tool output is structured; free text goes in a labelled `user_supplied_text` field; peer network instructions are treated as untrusted (§5); every write needs a human confirmation that shows the real arguments | T-NEG-06: a peer network instructs "book every shift" and the result is a confirmation dialog, not a booking | The agent can still give the user bad advice or propose the wrong shift; the human review is the backstop |
+| **Prompt injection**: recipe text, task notes, product data or peer instructions steer an agent | Tool output is structured; free text goes in a labelled `user_supplied_text` field; peer network instructions are treated as untrusted (§5); every write needs a human confirmation that shows the real arguments | T-NEG-06: a recipe or peer network says "add 20 of every product" and the result is a confirmation dialog showing those items, not a cart change | The agent can still propose wrong or extra items; the human review of each line is the backstop |
 | **Uncertain outcome after a write timeout** | §7.4 idempotency + reconciliation; no automatic re-POST | T-NEG-05: server delay injected | Users may retry by hand, but the same key keeps that safe |
 | **CSRF** on confirm, revoke or consent | SameSite=Lax cookie, plus a synchronizer token, plus an `Origin` header check on all state-changing POSTs | T-SEC-09 | Low |
 | **CORS misconfiguration** exposing private APIs | `*` only on `/agents/*` and `/api/mcp/public`, never with credentials. The authenticated MCP uses bearer auth (not cookies), so a CORS read can't happen with ambient credentials. All other routes have no CORS headers. | T-SMK-05/06 header assertions | none significant |
@@ -405,7 +410,7 @@ Any failure returns a typed MCP error (`unauthorized`, `forbidden_scope`, `grant
 | **Default-inference abuse** (cost) | Per-session and per-IP rate limits, max tokens per request, daily budget, kill switch env var; the endpoint has no CORS, so other origins' browsers can't call it | Load test | A direct scripted abuser up to the daily cap |
 | **DoS on MCP or AS** | Vercel platform protections, rate limits, payload size limits, caps on DCR registrations per IP | Basic load test | Platform-level only |
 | **Malicious peer network** (huge or deep, cyclic) | Size limit on artifact fetches (e.g. 512 KB), validation first, depth and invocation budgets | T-INT-06/07 | none significant |
-| **Privacy** | No email or real PII; synthetic shifts; retention per §8; audit stores hashed IPs | Review | Notes text the user chooses to share with their agent |
+| **Privacy** | No email or real PII; synthetic catalog; dietary preferences are opt-in fields; retention per §8; audit stores hashed IPs | Review | Notes text the user chooses to share with their agent |
 
 **Where protections live**
 
@@ -436,10 +441,10 @@ Preview deployments: Vercel Deployment Protection blocks fetches from other orig
 
 | ID | Case |
 | --- | --- |
-| T-FN-01 | J1: the shift question is answered from `list_shifts` (the trace shows an MCP call) |
-| T-FN-02 | Internal delegation `desk → shift_finder` is visible in the trace |
-| T-FN-03 | Peer named link: `commute` resolves through `links.json`; a local override in storage wins without changing the published file |
-| T-FN-04 | J2: book shows a confirmation with origin and args → receipt; cancelling makes no DB change |
+| T-FN-01 | J1: a recipe is answered from `match_ingredients` (the trace shows an MCP call), with substitutes and not-found items flagged |
+| T-FN-02 | Internal delegation `assistant → ingredient_finder` is visible in the trace |
+| T-FN-03 | Peer named link: `recipes` resolves through `links.json`; a local override in storage wins without changing the published file |
+| T-FN-04 | J2: `add_to_cart` shows a confirmation with origin and items → receipt and cart page; declining changes nothing; invented product ids are rejected |
 | T-FN-05 | J4–J6 with two real agents from A1 |
 | T-FN-06 | J7: revoke → 401; the audit log lists every step |
 | T-FN-07 | Unticking `notes` at consent → `get_task` omits notes |
@@ -448,13 +453,13 @@ Preview deployments: Vercel Deployment Protection blocks fetches from other orig
 
 | ID | Case |
 | --- | --- |
-| T-INT-01 | Load the exact `volunteer_desk` by URL after consent, run it with the caller's router (the trace shows the router origin = peer-caller) |
+| T-INT-01 | Load the exact `market_assistant` by URL after consent, run it with the caller's router (the trace shows the router origin = peer-caller) |
 | T-INT-02 | Deny consent → visible "origin denied" error, zero requests to our origin (checked with a network log) |
 | T-INT-03 | Wrong network name → fails with no fallback |
 | T-INT-04 | Peer manifest's router metadata is ignored |
 | T-INT-05 | `sly_data`: `locale` present at the peer, `session_hint` absent, in both directions |
 | T-INT-06 | Invalid network (duplicate agent, missing front agent) → rejected before any model call |
-| T-INT-07 | Cycle `volunteer_desk ↔ commute_helper` → stopped by the limit, with a visible error |
+| T-INT-07 | Cycle `market_assistant ↔ recipe_helper` → stopped by the limit, with a visible error |
 | T-INT-08 | Over-budget request (invocation limit set to 2) → visible error |
 | T-INT-09 | Cross-origin redirect on the manifest → new consent prompt |
 | T-INT-10 | Optional: load our network from the nsDeploy reference runtime, or from another team's conforming site |
@@ -478,10 +483,10 @@ Tools: Vitest (unit), Playwright with two origins (E2E/interop), MCP Inspector (
 
 ### 10.5 Short browser demo (2–3 min video; confirm the length limit on Devpost)
 
-1. Open `https://<peer-caller>` (show the URL bar: different origin). Ask about volunteering, approve the consent for `<site>`, and show the DevTools network panel fetching `agent-manifest.json` and the network JSON with CORS headers. The answer comes from our MCP tool, using peer-caller's router.
-2. Switch to `https://<site>`, start a task and click "Hand off to my agent".
+1. Open `https://<peer-caller>` (show the URL bar: different origin). Paste a recipe and ask what to buy, approve the consent for `<site>`, and show the DevTools network panel fetching `agent-manifest.json` and the network JSON with CORS headers. The shopping list comes from the store's MCP tool, using peer-caller's router.
+2. Switch to `https://<site>`, paste the same recipe into the store's assistant, review the proposed items and confirm. Show the filled cart page. Then click "Shop with my own agent".
 3. In a real agent (for example Claude or VS Code), paste the link and MCP URL, go through the consent page, untick `notes` and approve.
-4. The agent reads the task and proposes a booking. Open the review link, check the args and confirm. The agent reports the receipt.
+4. Give the agent a recipe. It matches the ingredients and proposes a cart. Open the review link, check the items and confirm. The agent reports the receipt.
 5. Open "Connected agents", show the audit log and revoke. The agent's next request fails.
 
 ### 10.6 Deliverables
@@ -490,7 +495,7 @@ Tools: Vitest (unit), Playwright with two origins (E2E/interop), MCP Inspector (
 | --- | --- |
 | Public website URL | `https://<project>.vercel.app` (or a custom domain) and `https://<peer-caller>.vercel.app` |
 | Open-source repository | Public GitHub repo; Apache-2.0 recommended (check compatibility with any vendored runtime, D1) |
-| Screenshots | Consent dialog (peer), MCP trace, booking confirmation, OAuth consent page, Connected agents + audit, smoke-check CI run |
+| Screenshots | Consent dialog (peer), MCP trace, ingredient table with substitutes, add-to-cart confirmation, cart page, OAuth consent page, Connected agents + audit, smoke-check CI run |
 | Demo video | §10.5 |
 | README | What's spec and what's extension, how to run locally, how to connect an agent, the compliance matrix |
 | Submission form items | Recheck on the [Devpost page](https://cognizant-agenticweb.devpost.com/) (not verified, HTTP 403) |
@@ -532,34 +537,33 @@ A1–A6 in §2.3.
 | Vercel Hobby limits (non-commercial terms, function duration, preview protection) | Low–Med | Med | Stateless MCP; Pro trial if needed; the bypass header for previews |
 | Default-inference cost abuse | Med | Low | Caps and kill switch |
 
-## 12. Suggested repository structure and definition of done
+## 12. Repository structure and definition of done
+
+Actual layout (ADR 0003: static output + Vercel Functions instead of Next.js):
 
 ```
-shift-handoff/
+greenleaf-market/
+├─ agents/
+│  ├─ market_assistant.hocon          # network source; __SITE_ORIGIN__ filled in at build time
+│  └─ sites/market_assistant/         # agent page theme, store nav (site.js), add_to_cart (actions.js)
 ├─ apps/
-│  ├─ site/                      # Next.js, deployed as Vercel project 1
-│  │  ├─ public/agents/          # build output: manifest, network JSON, links.json (generated)
-│  │  ├─ app/                    # pages: /, /task, /h/[ref], /oauth/authorize, /review/[id], /agents-connected
-│  │  ├─ app/api/infer/          # default inference proxy
-│  │  ├─ app/api/mcp/public/     # public MCP (list_shifts)
-│  │  ├─ app/api/mcp/            # authenticated MCP
-│  │  ├─ app/api/oauth/          # register, token, revoke
-│  │  ├─ app/.well-known/        # oauth-protected-resource, oauth-authorization-server
-│  │  ├─ app/api/actions/book/   # site action + status lookup
-│  │  ├─ lib/{auth,grants,audit,db,log-redact}/
-│  │  └─ next.config.ts          # headers: CORS for /agents/*, CSP, HSTS
-│  └─ peer-caller/               # independent origin, Vercel project 2, commute_helper network
-├─ agents/                       # HOCON sources (volunteer_desk, commute_helper)
-├─ packages/
-│  ├─ runtime/                   # vendored nsDeploy or a minimal TS runtime
-│  ├─ schemas/                   # JSON Schemas: manifest, links, tool I/O
-│  └─ build-agents/              # HOCON → resolved JSON + origin injection + lint
-├─ db/migrations/ , db/seed/
-├─ tests/{unit,e2e,interop,security,smoke}/
-├─ docs/{adr/,compliance-matrix.md,threat-model.md,demo-script.md}
-├─ .github/workflows/            # CI + post-deploy smoke checks
-├─ LICENSE  (Apache-2.0)
-└─ README.md
+│  ├─ site/                           # Vercel project 1 (Root Directory)
+│  │  ├─ public/                      # store front, cart page, cart-store.js
+│  │  │  └─ agents/                   # generated: manifest, network JSON, links.json, runtime (committed)
+│  │  ├─ api/mcp/public.js            # public MCP: match_ingredients, search_products
+│  │  ├─ api/infer/v1/chat/completions.js  # site-funded inference proxy
+│  │  ├─ api/products.js, api/cart/quote.js
+│  │  ├─ api/mcp.js, api/oauth/*, api/cart/confirm.js   # M4–M5 (extension)
+│  │  ├─ lib/catalog.js, lib/http.js
+│  │  └─ vercel.json                  # CORS for /agents/*, CSP, HSTS, function limits
+│  └─ peer-caller/                    # M3: recipe site on a second origin, recipe_helper network
+├─ packages/runtime/                  # vendored nsDeploy runtime + PATCHES.md
+├─ vendor/nsdeploy/                   # pinned submodule, build time only
+├─ scripts/                           # build-agents, dev-server, smoke
+├─ tests/                             # catalog, HTTP, headless runtime end to end
+├─ docs/adr/                          # 0001–0004
+├─ .github/workflows/                 # ci.yml, smoke.yml
+├─ LICENSE (Apache-2.0), NOTICE, README.md
 ```
 
 **Definition of done**
@@ -573,26 +577,32 @@ shift-handoff/
 
 ---
 
-## First five implementation tasks (in order)
+## Progress and next five implementation tasks
 
-1. **M0 spikes:**
-   - Connect two target agents to a stub OAuth-protected MCP server on Vercel (A1, A4).
-   - Check the nsDeploy license and manifest schema (A2).
-   - Record D1–D9 as ADRs.
-2. **Scaffold the monorepo and both Vercel projects:**
-   - Next.js `site` and `peer-caller` on separate origins.
-   - Neon DB with preview branching.
-   - Env vars: `DATABASE_URL`, `INFERENCE_API_KEY`, `SESSION_SECRET`, `TOKEN_PEPPER`, each scoped to Production or Preview.
-   - `next.config.ts` headers for CORS on `/agents/*`, CSP and HSTS.
-3. **Author `volunteer_desk` in HOCON and build the artifacts:**
-   - Build the resolved JSON, manifest and `links.json`, with origin injection.
-   - Add schema validation and a lint against includes and substitutions in CI.
-   - Add the T-SMK-01 to 03 smoke checks as a post-deploy workflow.
-4. **Implement `/api/mcp/public` `list_shifts`:**
-   - Synthetic seed data.
-   - CORS preflight.
-   - Size and range limits.
-5. **Wire the browser runtime with `/api/infer` on the site page:**
-   - Rate limits and a daily cap on `/api/infer`.
-   - Prove J1 end to end on the production URL.
-   - This completes the first vertical slice and sets up M2 and M3.
+**Done (local, 28 tests passing):**
+- nsDeploy license and manifest check, with the runtime vendored and patched (ADR 0001).
+- `market_assistant` network, published artifacts with CORS, and the site-funded model (ADR 0002).
+- Public MCP `match_ingredients` / `search_products` over a 164-product catalog.
+- `add_to_cart` site action with runtime confirmation, server re-pricing and replay protection.
+- Store front and cart page.
+- CI and smoke workflows.
+
+**Next, in order:**
+1. **Deploy to Vercel:**
+   - Confirm the production domain and rebuild the artifacts for it.
+   - Set `INFERENCE_API_KEY`.
+   - Run `npm run smoke` from another origin.
+   - Try J1 and J2 in a real browser with the real model.
+2. **Agent-client spike (A1):** connect two real agents (for example Claude and VS Code) to a stub OAuth-protected MCP server on the deployment, and record which ones support OAuth and custom scopes.
+3. **M3 `peer-caller` recipe site:**
+   - A second Vercel project with a `recipe_helper` network.
+   - Load `market_assistant` both ways through `links.json`.
+   - Consent, `sly_data`, cycle, budget and denied-origin tests.
+4. **Database and server-side cart:**
+   - Neon via the Vercel Marketplace.
+   - Guest sessions and a server-side cart, with the browser cart migrated to it.
+   - A shared rate-limit store and a daily inference budget.
+5. **M4 handoff:**
+   - Handoff refs and the OAuth authorization server, with consent bound to the task.
+   - Authenticated `/api/mcp` with `get_task` and `match_ingredients`.
+   - Then M5: `propose_cart`, the review page and revocation.

@@ -18,7 +18,7 @@ actions, OAuth and authenticated MCP.
   - `vercel.json` holds headers (CORS only on public agent artifacts, CSP, HSTS),
     the `/agents` → `/agents/` redirect and function durations.
 - The agent bundle lives under `/agents/`, so the peer URL is
-  `https://<host>/agents/volunteer_desk`, and the runtime fetches
+  `https://<host>/agents/market_assistant`, and the runtime fetches
   `https://<host>/agents/agent-manifest.json` (spec §3.2 step 1).
 - The MCP server uses the official SDK's Web-standard Streamable HTTP transport in
   stateless mode with JSON responses. It keeps no session state between function

@@ -36,9 +36,9 @@ test("T-SMK-01 manifest: public, CORS *, no credentials, exact network entry", a
   assert.equal(r.headers.get("access-control-allow-origin"), "*");
   assert.equal(r.headers.get("access-control-allow-credentials"), null);
   const m = await r.json();
-  const entry = m.networks.find((n) => n.name === "volunteer_desk");
-  assert.ok(entry, "volunteer_desk listed");
-  assert.equal(entry.front_man, "desk");
+  const entry = m.networks.find((n) => n.name === "market_assistant");
+  assert.ok(entry, "market_assistant listed");
+  assert.equal(entry.front_man, "assistant");
   assert.ok(entry.hocon);
   assert.equal(m.llm_router.site_funded, true);
   assert.equal(m.llm_router.base_url, `${SITE_ORIGIN}/api/infer/v1`);
@@ -55,11 +55,11 @@ test("T-SMK-02 network JSON: CORS, resolved, two agents, grounded MCP tool", asy
   assert.ok(!text.includes("${") && !text.includes("__SITE_ORIGIN__"), "no substitutions left");
   const net = JSON.parse(text);
   const names = net.tools.map((t) => t.name);
-  assert.deepEqual(names, ["desk", "shift_finder"]);
-  assert.deepEqual(net.tools[0].tools, ["shift_finder"]);
+  assert.deepEqual(names, ["assistant", "ingredient_finder"]);
+  assert.deepEqual(net.tools[0].tools, ["ingredient_finder"]);
   assert.deepEqual(net.tools[1].tools, [`${SITE_ORIGIN}/api/mcp/public`]);
   assert.deepEqual(net.tools[0].allow.to_downstream.sly_data, ["locale"]);
-  assert.equal(net.tools[1].function.parameters.required.includes("date_from"), true);
+  assert.deepEqual(net.tools[1].function.parameters.required, ["ingredients"]);
 });
 
 test("T-SMK-03 links.json: CORS and valid", async () => {
@@ -68,7 +68,7 @@ test("T-SMK-03 links.json: CORS and valid", async () => {
   assert.equal(r.headers.get("access-control-allow-origin"), "*");
   const links = await r.json();
   assert.equal(links.version, 1);
-  assert.ok("volunteer_desk" in links.networks);
+  assert.ok("market_assistant" in links.networks);
 });
 
 test("security headers on pages; inline scripts not needed", async () => {
@@ -97,45 +97,45 @@ test("T-SMK-05 public MCP preflight allows the MCP headers from any origin", asy
 });
 
 test("T-SMK-06 private endpoints send no CORS headers", async () => {
-  for (const p of ["/api/infer/v1/chat/completions", "/api/shifts"]) {
-    const r = await fetch(`${SITE_ORIGIN}${p}`, { method: p.includes("infer") ? "POST" : "GET", headers: { Origin: OTHER, "Content-Type": "application/json" }, body: p.includes("infer") ? "{}" : undefined });
+  for (const p of ["/api/infer/v1/chat/completions", "/api/cart/quote", "/api/products"]) {
+    const r = await fetch(`${SITE_ORIGIN}${p}`, { method: p === "/api/products" ? "GET" : "POST", headers: { Origin: OTHER, "Content-Type": "application/json" }, body: p === "/api/products" ? undefined : "{}" });
     assert.equal(r.headers.get("access-control-allow-origin"), null, p);
   }
 });
 
-test("public MCP: initialize, tools/list, tools/call list_shifts", async () => {
+test("public MCP: initialize, tools/list, match_ingredients, search_products", async () => {
   const url = `${SITE_ORIGIN}/api/mcp/public`;
   const init = await mcpPost(url, rpc(1, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "0" } }), { Origin: OTHER });
   assert.equal(init.resp.status, 200);
   assert.equal(init.resp.headers.get("access-control-allow-origin"), "*");
-  assert.equal(init.json.result.serverInfo.name, "northside-pantry-public");
+  assert.equal(init.json.result.serverInfo.name, "greenleaf-market-public");
 
   const list = await mcpPost(url, rpc(2, "tools/list"));
   const tools = list.json.result.tools;
-  assert.deepEqual(tools.map((t) => t.name), ["list_shifts"]);
-  assert.equal(tools[0].annotations.readOnlyHint, true);
-  assert.deepEqual(tools[0].inputSchema.required.sort(), ["date_from", "date_to"]);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ["match_ingredients", "search_products"]);
+  for (const t of tools) assert.equal(t.annotations.readOnlyHint, true, t.name);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const later = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
-  const call = await mcpPost(url, rpc(3, "tools/call", { name: "list_shifts", arguments: { date_from: today, date_to: later } }));
+  const call = await mcpPost(url, rpc(3, "tools/call", { name: "match_ingredients", arguments: { ingredients: ["400 g spaghetti", "4 large eggs", "water"] } }));
   const result = call.json.result;
   assert.notEqual(result.isError, true);
   const data = JSON.parse(result.content[0].text);
   assert.equal(data.demo_data, true);
-  assert.ok(Array.isArray(data.shifts) && data.shifts.length > 0);
+  assert.deepEqual(data.items.map((i) => i.status), ["matched", "matched", "not_found"]);
+  assert.match(data.items[0].product.id, /^p_spaghetti_500g$/);
   assert.deepEqual(result.structuredContent, data);
+
+  const search = await mcpPost(url, rpc(4, "tools/call", { name: "search_products", arguments: { query: "olive oil", limit: 3 } }));
+  const found = JSON.parse(search.json.result.content[0].text);
+  assert.equal(found.products[0].name, "Extra virgin olive oil");
 });
 
-test("public MCP: bad arguments return a tool error, not data", async () => {
+test("public MCP: bad arguments return a tool error, not data; no write tools exist", async () => {
   const url = `${SITE_ORIGIN}/api/mcp/public`;
-  const call = await mcpPost(url, rpc(4, "tools/call", { name: "list_shifts", arguments: { date_from: "2026-12-10", date_to: "2026-12-01" } }));
+  const call = await mcpPost(url, rpc(5, "tools/call", { name: "match_ingredients", arguments: { ingredients: [] } }));
   assert.equal(call.json.result.isError, true);
-  assert.match(call.json.result.content[0].text, /on or after/);
-  const unknown = await mcpPost(url, rpc(5, "tools/call", { name: "book_shift", arguments: {} }));
-  assert.ok(unknown.json.error || unknown.json.result?.isError, "unknown tool rejected");
+  const unknown = await mcpPost(url, rpc(6, "tools/call", { name: "add_to_cart", arguments: {} }));
+  assert.ok(unknown.json.error || unknown.json.result?.isError, "add_to_cart is not an MCP tool");
 });
-
 test("public MCP: oversized body rejected", async () => {
   const r = await fetch(`${SITE_ORIGIN}/api/mcp/public`, {
     method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
@@ -198,13 +198,26 @@ test("inference proxy: kill switch, missing key, bad body, hidden upstream error
   await failing.close();
 });
 
-test("landing page and shifts API", async () => {
-  const page = await get("/");
-  assert.equal(page.status, 200);
-  assert.match(await page.text(), /Northside Pantry/);
-  const r = await get("/api/shifts");
+test("store pages and products API", async () => {
+  for (const p of ["/", "/cart.html", "/cart-store.js"]) assert.equal((await get(p)).status, 200, p);
+  const r = await get("/api/products?q=spaghetti");
   assert.equal(r.status, 200);
   const data = await r.json();
-  assert.ok(data.shifts.length > 0);
-  assert.equal((await get("/api/shifts?date_from=bad")).status, 400);
+  assert.equal(data.products[0].name, "Spaghetti");
+  assert.ok(data.categories.includes("Produce"));
+  assert.equal((await get("/api/products?category=Nope")).status, 400);
+});
+
+test("cart quote: same-origin only, server prices, rejects bad lines", async () => {
+  const body = JSON.stringify({ items: [{ product_id: "p_spaghetti_500g", quantity: 2 }, { product_id: "p_fake_1g", quantity: 1 }] });
+  const cross = await fetch(`${SITE_ORIGIN}/api/cart/quote`, { method: "POST", headers: { "Content-Type": "application/json", Origin: OTHER, "Sec-Fetch-Site": "cross-site" }, body });
+  assert.equal(cross.status, 403);
+  const ok = await fetch(`${SITE_ORIGIN}/api/cart/quote`, { method: "POST", headers: sameOrigin, body });
+  assert.equal(ok.status, 200);
+  const q = await ok.json();
+  assert.equal(q.lines.length, 1);
+  assert.equal(q.lines[0].quantity, 2);
+  assert.equal(q.rejected[0].reason, "unknown_product");
+  const bad = await fetch(`${SITE_ORIGIN}/api/cart/quote`, { method: "POST", headers: sameOrigin, body: '{"items":[]}' });
+  assert.equal(bad.status, 400);
 });

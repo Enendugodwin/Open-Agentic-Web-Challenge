@@ -1,6 +1,6 @@
 {
   "version": 1,
   "networks": {
-    "volunteer_desk": {}
+    "market_assistant": {}
   }
 }

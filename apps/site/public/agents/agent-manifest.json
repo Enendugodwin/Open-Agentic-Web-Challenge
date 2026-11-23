@@ -1,30 +1,30 @@
 {
-  "brand": "Northside Pantry volunteer desk",
+  "brand": "Greenleaf Market shopping assistant",
   "networks": [
     {
-      "name": "volunteer_desk",
-      "front_man": "desk",
-      "hocon": "./volunteer_desk.network.json",
-      "description": "Volunteer desk (demo data)",
+      "name": "market_assistant",
+      "front_man": "assistant",
+      "hocon": "./market_assistant.network.json",
+      "description": "Recipe to cart (demo store)",
       "tags": [
         "deployed",
         "nsdeploy"
       ],
       "sample_queries": [
-        "Which Saturday morning shifts still have space?",
-        "I can drive. Are there any delivery shifts next week?"
+        "I want to make spaghetti carbonara for 4. Get me everything I need.",
+        "Here's my recipe: 400 g spaghetti, 150 g pancetta, 4 eggs, 100 g pecorino, black pepper. Fill my cart."
       ]
     }
   ],
   "llm_router": {
-    "base_url": "https://shift-handoff.vercel.app/api/infer/v1",
+    "base_url": "https://greenleaf-market.vercel.app/api/infer/v1",
     "mock": false,
     "site_funded": true,
     "byok_router": "",
     "note": "Publisher-funded default router for this site's own runtime. Informational for peers: a caller always uses its own router."
   },
   "allowed_peers": [
-    "https://shift-handoff.vercel.app/agents"
+    "https://greenleaf-market.vercel.app/agents"
   ],
   "peer_policy": {
     "mode": "open",
@@ -33,8 +33,8 @@
   },
   "agent_mcp": {
     "protocol": "nsdeploy-agent-mcp/v1",
-    "network": "volunteer_desk",
-    "front_man": "desk",
+    "network": "market_assistant",
+    "front_man": "assistant",
     "available": false,
     "reason": "This is a static bundle; a public MCP facade requires an application host."
   },
@@ -45,17 +45,17 @@
     "protocol": "nsdeploy-link/v1",
     "exports": [
       {
-        "network": "volunteer_desk",
-        "front_man": "desk",
+        "network": "market_assistant",
+        "front_man": "assistant",
         "aliases": [
-          "volunteer_desk",
-          "desk"
+          "market_assistant",
+          "assistant"
         ],
-        "url": "https://shift-handoff.vercel.app/agents/volunteer_desk"
+        "url": "https://greenleaf-market.vercel.app/agents/market_assistant"
       }
     ],
     "imports": [],
-    "site": "https://shift-handoff.vercel.app/agents",
+    "site": "https://greenleaf-market.vercel.app/agents",
     "link_updates": {
       "mode": "browser-local"
     }
@@ -69,11 +69,17 @@
     "public_mcp_facade": false,
     "site_funded_inference": true
   },
+  "actions": {
+    "version": 1,
+    "bridge": "./action-bridge.html",
+    "module": "./actions.js"
+  },
   "mcp": [
     {
-      "url": "https://shift-handoff.vercel.app/api/mcp/public",
+      "url": "https://greenleaf-market.vercel.app/api/mcp/public",
       "tools": [
-        "list_shifts"
+        "match_ingredients",
+        "search_products"
       ],
       "auth": "none",
       "effect": "read"

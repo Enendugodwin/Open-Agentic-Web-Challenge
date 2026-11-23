@@ -8,7 +8,8 @@
   "functions": {
     "api/infer/v1/chat/completions.js": { "maxDuration": 60 },
     "api/mcp/public.js": { "maxDuration": 15 },
-    "api/shifts.js": { "maxDuration": 10 }
+    "api/products.js": { "maxDuration": 10 },
+    "api/cart/quote.js": { "maxDuration": 10 }
   },
   "headers": [
     {
@@ -23,7 +24,7 @@
       ]
     },
     {
-      "source": "/agents/(agent-manifest\\.json|volunteer_desk\\.network\\.json|links\\.json|agent-mcp\\.json|\\.well-known/nsdeploy\\.json|\\.well-known/nsdeploy-agent\\.json)",
+      "source": "/agents/(agent-manifest\\.json|market_assistant\\.network\\.json|links\\.json|agent-mcp\\.json|\\.well-known/nsdeploy\\.json|\\.well-known/nsdeploy-agent\\.json)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }

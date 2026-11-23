@@ -1,2 +1,0 @@
-/* MVP: inference is site-funded, so the optional BYOK settings panel is hidden (see docs/adr/0002). */
-.ns-settings{display:none!important}

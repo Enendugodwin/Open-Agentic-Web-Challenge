@@ -1,7 +1,10 @@
-:root{--ns-font:"Segoe UI", system-ui, sans-serif;--ns-bg:#f3f8f1;--ns-fg:#1c2b1a;--ns-muted:#5f7258;--ns-border:#d3e5c9;--ns-primary:#15803d;--ns-accent:#ca8a04;--ns-msgbg:#e6f2df;--ns-panelbg:#fafdf8;--ns-user-bg:linear-gradient(135deg,#15803d,#ca8a04);--ns-radius:16px;}
+:root{--ns-font:"Segoe UI", system-ui, sans-serif;--ns-bg:#f4f8f2;--ns-fg:#18261a;--ns-muted:#5b6e5c;--ns-border:#d2e4c8;--ns-primary:#15803d;--ns-accent:#ea580c;--ns-msgbg:#e7f2e0;--ns-panelbg:#fbfdf9;--ns-user-bg:linear-gradient(135deg,#15803d,#ea580c);--ns-radius:16px;}
 
 .ns-settings{display:none!important}
+.gm-nav{display:flex;gap:16px;padding:8px 16px;font:600 14px var(--ns-font)}
+.gm-nav a{color:var(--ns-primary);text-decoration:none}
+.gm-nav a:last-child{margin-left:auto}
 
 html,body{margin:0;height:100%;overflow:hidden}
-body{font-family:var(--ns-font);background:radial-gradient(1200px 500px at 20% -10%,#e3f1dc 0%,#f3f8f1 60%)}
+body{font-family:var(--ns-font);background:radial-gradient(1200px 500px at 20% -10%,#e2f0da 0%,#f4f8f2 60%)}
 #app{height:100vh;overflow:hidden}

@@ -1,0 +1,20 @@
+{
+    "brand":  "Greenleaf Market",
+    "icon":  "",
+    "tagline":  "Recipe to cart (demo store)",
+    "hero":  "",
+    "font":  "\"Segoe UI\", system-ui, sans-serif",
+    "radius":  16,
+    "colors":  {
+                   "primary":  "#15803d",
+                   "accent":  "#ea580c",
+                   "bg":  "#f4f8f2",
+                   "bg_tint":  "#e2f0da",
+                   "fg":  "#18261a",
+                   "muted":  "#5b6e5c",
+                   "border":  "#d2e4c8",
+                   "msgbg":  "#e7f2e0",
+                   "panelbg":  "#fbfdf9"
+               },
+    "welcome":  null
+}

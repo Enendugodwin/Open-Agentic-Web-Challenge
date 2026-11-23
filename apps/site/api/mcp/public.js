@@ -1,9 +1,9 @@
 // Public, read-only MCP server: POST /api/mcp/public
 //
-// The grounded capability for the volunteer_desk network (spec §3.1 "Use grounded
-// capabilities"). It serves synthetic public data only, needs no authentication and
+// The grounded capability for the market_assistant network (spec §3.1 "Use grounded
+// capabilities"). It serves the public demo catalog only, needs no authentication and
 // allows any origin (no credentials), so a peer caller's browser runtime can reach it
-// after its user approves the contact (spec §3.4).
+// after its user approves the contact (spec §3.4). It cannot change any cart.
 //
 // Transport: MCP Streamable HTTP in stateless mode with JSON responses, so each
 // request is independent and fits a short-lived serverless function.
@@ -11,33 +11,41 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
-import { listShifts, ROLES, ShiftQueryError, MAX_RANGE_DAYS } from "../../lib/shifts.js";
+import { CATEGORIES, MAX_INGREDIENTS, matchIngredients, publicProduct, searchProducts, STORE } from "../../lib/catalog.js";
 import { PUBLIC_CORS, clientIp, createRateLimiter, json, withHeaders, readJsonBody } from "../../lib/http.js";
 
 const limiter = createRateLimiter({ limit: 120, windowMs: 60_000 });
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+
+const result = (data) => ({ content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data });
 
 function buildServer() {
-  const server = new McpServer({ name: "northside-pantry-public", version: "0.1.0" });
-  server.registerTool("list_shifts", {
-    title: "List volunteer shifts",
-    description: `List open volunteer shifts at Northside Pantry (demonstration data) between two dates, at most ${MAX_RANGE_DAYS} days apart. The result includes "today" in the pantry's time zone.`,
+  const server = new McpServer({ name: "greenleaf-market-public", version: "0.2.0" });
+
+  server.registerTool("match_ingredients", {
+    title: "Match recipe ingredients to products",
+    description: `Match up to ${MAX_INGREDIENTS} recipe ingredient lines (e.g. "400 g spaghetti", "2 cloves garlic") to ${STORE.name} products (demonstration data). Returns, per line, a product with pack count and price, a substitute when the best match is out of stock, or not_found. Read-only.`,
     inputSchema: {
-      date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("First day to search, YYYY-MM-DD."),
-      date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Last day to search, YYYY-MM-DD."),
-      role: z.enum(ROLES).optional().describe("Optional role filter."),
+      ingredients: z.array(z.string().min(1).max(200)).min(1).max(MAX_INGREDIENTS)
+        .describe("One ingredient per item, with quantity and unit when known."),
     },
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-  }, async (args) => {
-    try {
-      const result = listShifts(args);
-      return { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
-    } catch (err) {
-      if (err instanceof ShiftQueryError) {
-        return { isError: true, content: [{ type: "text", text: err.message }] };
-      }
-      throw err;
-    }
+    annotations: READ_ONLY,
+  }, async ({ ingredients }) => result(matchIngredients(ingredients)));
+
+  server.registerTool("search_products", {
+    title: "Search products",
+    description: `Search the ${STORE.name} catalog (demonstration data) by product name. Read-only.`,
+    inputSchema: {
+      query: z.string().min(1).max(100).describe("Product name, e.g. \"olive oil\"."),
+      category: z.enum(CATEGORIES).optional().describe("Optional category filter."),
+      limit: z.number().int().min(1).max(20).optional().describe("Maximum results (default 8)."),
+    },
+    annotations: READ_ONLY,
+  }, async ({ query, category, limit }) => {
+    const products = searchProducts(query, { category, limit: limit ?? 8 }).map(publicProduct);
+    return result({ store: STORE.name, demo_data: true, query, products });
   });
+
   return server;
 }
 
@@ -59,7 +67,6 @@ export async function POST(request) {
     const response = await transport.handleRequest(request, { parsedBody: body.value });
     return withHeaders(response, { ...PUBLIC_CORS, "Cache-Control": "no-store" });
   } finally {
-    // Stateless: nothing to keep between requests.
     await transport.close().catch(() => {});
     await server.close().catch(() => {});
   }

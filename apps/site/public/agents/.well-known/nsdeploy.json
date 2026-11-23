@@ -2,17 +2,17 @@
   "protocol": "nsdeploy-link/v1",
   "exports": [
     {
-      "network": "volunteer_desk",
-      "front_man": "desk",
+      "network": "market_assistant",
+      "front_man": "assistant",
       "aliases": [
-        "volunteer_desk",
-        "desk"
+        "market_assistant",
+        "assistant"
       ],
-      "url": "https://shift-handoff.vercel.app/agents/volunteer_desk"
+      "url": "https://greenleaf-market.vercel.app/agents/market_assistant"
     }
   ],
   "imports": [],
-  "site": "https://shift-handoff.vercel.app/agents",
+  "site": "https://greenleaf-market.vercel.app/agents",
   "link_updates": {
     "mode": "browser-local"
   }
