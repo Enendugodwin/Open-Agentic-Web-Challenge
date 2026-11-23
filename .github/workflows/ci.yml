@@ -33,4 +33,11 @@ jobs:
         run: |
           SITE_URL=$(node -e "const m=require('./apps/site/public/agents/agent-manifest.json');console.log(new URL(m.llm_router.base_url).origin)")
           node scripts/build-agents.mjs --site-url "$SITE_URL"
-          git diff --exit-code -- apps/site/public/agents || (echo "Run: npm run build:agents -- --site-url $SITE_URL and commit the result" && exit 1)
+          if [ -n "$(git status --porcelain -- apps/site/public/agents)" ]; then
+            # Report what changed as an annotation (visible on the run page).
+            changed=$(git status --porcelain -- apps/site/public/agents | head -20 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            detail=$(git diff -U0 -- apps/site/public/agents | grep -E '^[-+][^-+]' | head -30 | cut -c1-200 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Agent artifacts differ from a fresh build::${changed}%0A${detail}"
+            echo "Run: npm run build:agents -- --site-url $SITE_URL and commit the result"
+            exit 1
+          fi
