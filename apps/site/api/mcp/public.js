@@ -11,7 +11,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
-import { CATEGORIES, CartError, MAX_INGREDIENTS, matchIngredients, publicProduct, quoteCart, searchProducts, STORE } from "../../lib/catalog.js";
+import { CATEGORIES, CartError, lookupProducts, MAX_INGREDIENTS, MAX_LOOKUPS, matchIngredients, publicProduct, quoteCart, searchProducts, STORE } from "../../lib/catalog.js";
 import { itemsLink } from "../../public/shop-link.js";
 import { PUBLIC_CORS, clientIp, createRateLimiter, json, withHeaders, readJsonBody } from "../../lib/http.js";
 
@@ -45,6 +45,21 @@ function buildServer(origin) {
   }, async ({ query, category, limit }) => {
     const products = searchProducts(query, { category, limit: limit ?? 8 }).map(publicProduct);
     return result({ store: STORE.name, demo_data: true, query, products });
+  });
+
+  server.registerTool("lookup_products", {
+    title: "Store lookup: units and stock",
+    description: `Look up ${STORE.name} products (demonstration data) by exact product id and/or by name. For each item, returns how it is sold (each or pack), the pack contents (amount and unit: g, ml or items), the unit price, the price, and the stock: in_stock, available (units of sale on hand), status (in_stock, low_stock or out_of_stock) and max_per_order. Use it to check units and stock before choosing pack counts. Read-only.`,
+    inputSchema: {
+      product_ids: z.array(z.string().min(3).max(80)).max(MAX_LOOKUPS).optional().describe("Exact product ids, e.g. p_spaghetti_500g."),
+      names: z.array(z.string().min(1).max(100)).max(MAX_LOOKUPS).optional().describe("Product names to look up, e.g. \"olive oil\"."),
+    },
+    annotations: READ_ONLY,
+  }, async ({ product_ids = [], names = [] }) => {
+    if (!product_ids.length && !names.length) {
+      return { isError: true, content: [{ type: "text", text: "Give at least one product id or name." }] };
+    }
+    return result(lookupProducts({ product_ids, names }));
   });
 
   server.registerTool("create_cart_link", {

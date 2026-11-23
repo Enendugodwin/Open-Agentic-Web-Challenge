@@ -24,18 +24,21 @@ STEPS
       It needs no sign-in. Then:
       - call match_ingredients once with all the lines;
       - call search_products with a simpler name for anything "not_found";
+      - call lookup_products with product ids (or names) to check how each item is sold (each or pack, and the pack contents in g, ml or items) and how many are in stock;
       - after I approve the list, call create_cart_link with the product ids and pack counts.
 
    B) Web access. If you can open web pages, open this URL with one "i" parameter per ingredient line (URL-encoded):
       https://greenleaf-market.vercel.app/api/match?i=400%20g%20spaghetti&i=2%20cloves%20garlic
       The JSON lists, for each line, a status, product id, name, size, packs and price. It also includes a ready-made "cart_link".
+      To check units and stock, open https://greenleaf-market.vercel.app/api/lookup?id=PRODUCT_ID&name=olive%20oil (repeat id= or name= for more items).
 
    C) No tools. Skip the lookup and go to step 5. Use the recipe-link form there.
 
-4. Show me a table with these columns: ingredient, product, size, packs, price. Add the estimated total.
+4. Show me a table with these columns: ingredient, product, unit (each, or pack contents such as 500 g), packs, price, stock. Add the estimated total.
+   Each product result has "unit" (sold_as, contents, unit_price) and "stock" (status, available, max_per_order). Never choose more packs than "available".
    Point out:
    - substitutes (status "substituted");
-   - items that are out of stock;
+   - items that are out of stock or low in stock;
    - items the store does not sell.
    Then ask if I want to change anything.
 

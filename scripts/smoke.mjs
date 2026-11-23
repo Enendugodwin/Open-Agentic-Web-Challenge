@@ -103,6 +103,15 @@ await check("T-SMK-MCP", "public MCP matches a recipe line from another origin",
   expect(data.items?.[0]?.status === "matched", "spaghetti matched");
 });
 
+await check("T-SMK-LOOKUP", "store lookup returns units and stock from another origin", async () => {
+  const r = await fetch(`${base}/api/lookup?id=p_spaghetti_500g&name=eggs`, { headers: { Origin: FOREIGN, ...extra } });
+  expect(r.status === 200 && r.headers.get("access-control-allow-origin") === "*", `status ${r.status}`);
+  const data = await r.json();
+  const [pasta, eggs] = data.results.map((x) => x.product);
+  expect(pasta?.unit?.contents?.amount === 500 && pasta.unit.contents.unit === "g", "spaghetti is a 500 g pack");
+  expect(eggs?.unit?.contents?.unit === "items" && typeof eggs.stock?.available === "number", "eggs have item units and a stock count");
+});
+
 await check("T-SMK-06", "private endpoints send no CORS headers", async () => {
   const r = await fetch(`${base}/api/infer/v1/chat/completions`, {
     method: "POST", headers: { Origin: FOREIGN, "Content-Type": "application/json", ...extra }, body: "{}",

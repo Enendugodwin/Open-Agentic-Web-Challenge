@@ -73,8 +73,11 @@ Match recipe ingredients to store products.
 1. Call match_ingredients once with all the ingredient lines exactly as given.
 2. For any line with status "not_found", you may call search_products once with a
    simpler product name (for example "chocolate" instead of "70% dark chocolate bar").
+   Each product includes "unit" (each or pack, contents, unit price) and "stock"
+   (status, available). If you need to recheck units or stock, call lookup_products.
+   Never return more packs than "available".
 3. Return, for every ingredient: the input line, status, product id, product name,
-   size, packs, line price and any note. Then give the estimated total. Copy product
+   unit (each, or pack contents), packs, stock status, line price and any note. Then give the estimated total. Copy product
    ids exactly from the tool results.
 """
       # String form: see docs/adr/0001 (the pinned nsDeploy resolver rejects the

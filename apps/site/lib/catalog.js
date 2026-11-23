@@ -209,11 +209,65 @@ export const CATEGORIES = [...new Set(PRODUCTS.map((p) => p.category))];
 
 export const getProduct = (id) => BY_ID.get(id) || null;
 
+export const LOW_STOCK = 5;
+const UNIT_NAMES = { g: "g", ml: "ml", count: "items" };
+
+/** How the product is sold: one item ("each") or a pack with fixed contents. */
+export function unitInfo(p) {
+  const each = p.size_unit === "count" && p.size_value === 1;
+  let unitPrice;
+  if (p.size_unit === "count") {
+    unitPrice = each ? `${formatPrice(p.price_cents)} each` : `${formatPrice(Math.round(p.price_cents / p.size_value))} per item`;
+  } else {
+    const per = p.size_unit === "g" ? "100 g" : "100 ml";
+    unitPrice = `${formatPrice(Math.round((p.price_cents * 100) / p.size_value))} per ${per}`;
+  }
+  return {
+    sold_as: each ? "each" : "pack",
+    contents: { amount: p.size_value, unit: UNIT_NAMES[p.size_unit] },
+    label: each ? "each (1 item)" : `pack of ${p.size}`,
+    unit_price: unitPrice,
+  };
+}
+
+/** Stock on hand. Quantities are in units of sale (items or packs). */
+export function stockInfo(p) {
+  return {
+    in_stock: p.stock > 0,
+    available: p.stock,
+    status: p.stock <= 0 ? "out_of_stock" : p.stock <= LOW_STOCK ? "low_stock" : "in_stock",
+    max_per_order: Math.min(MAX_QTY, Math.max(0, p.stock)),
+  };
+}
+
 export function publicProduct(p) {
   return {
     id: p.id, name: p.name, size: p.size, price: formatPrice(p.price_cents), price_cents: p.price_cents,
     category: p.category, aisle: p.aisle, in_stock: p.stock > 0,
+    unit: unitInfo(p),
+    stock: stockInfo(p),
   };
+}
+
+export const MAX_LOOKUPS = 40;
+
+/**
+ * Store lookup: exact product ids and/or product names (best match). Tells an
+ * agent what unit each item is sold in and how many are in stock.
+ */
+export function lookupProducts({ product_ids = [], names = [] } = {}) {
+  const ids = product_ids.slice(0, MAX_LOOKUPS);
+  const results = ids.map((id) => {
+    const p = getProduct(id);
+    return p ? { query: id, by: "id", found: true, product: publicProduct(p) } : { query: id, by: "id", found: false, note: "Unknown product id." };
+  });
+  for (const name of names.slice(0, Math.max(0, MAX_LOOKUPS - ids.length))) {
+    const [best, ...rest] = searchProducts(name, { limit: 4 });
+    results.push(best
+      ? { query: name, by: "name", found: true, product: publicProduct(best), alternatives: rest.map(publicProduct) }
+      : { query: name, by: "name", found: false, note: "No matching product." });
+  }
+  return { store: STORE.name, demo_data: true, results, truncated: product_ids.length + names.length > MAX_LOOKUPS };
 }
 
 export const formatPrice = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -267,7 +321,7 @@ const weight = (t) => 1 + Math.log(INDEX.length / (DF.get(t) || 1));
 // Recipe items a supermarket does not sell.
 const NOT_SOLD = new Set(["water", "ice", "boiling water", "ice water", "cold water", "warm water"]);
 
-function score(entry, q) {
+function score(entry, q, rawPhrase = "") {
   if (!q.length) return 0;
   const total = q.reduce((sum, t) => sum + weight(t), 0);
   const hit = q.filter((t) => entry.allTokens.has(t)).reduce((sum, t) => sum + weight(t), 0);
@@ -277,7 +331,10 @@ function score(entry, q) {
   let s = coverage * 10;
   if (entry.tagPhrases.includes(qp) || entry.nameTokens.join(" ") === qp) s += 6;
   else if (entry.tagPhrases.some((t) => t.endsWith(qp) || qp.endsWith(t))) s += 2;
-  const extraName = entry.nameTokens.filter((t) => !q.includes(t)).length;
+  // The full wording, before descriptive words were removed, names this product
+  // exactly ("whole chicken", "whole milk").
+  if (rawPhrase && rawPhrase !== qp && (entry.tagPhrases.includes(rawPhrase) || entry.nameTokens.join(" ") === rawPhrase)) s += 8;
+  const extraName = entry.nameTokens.filter((t) => !q.includes(t) && !rawPhrase.split(" ").includes(t)).length;
   s -= extraName * 0.4;
   return s; // relevance only; stock is handled by the caller
 }
@@ -285,9 +342,10 @@ function score(entry, q) {
 /** Ranked product search. */
 export function searchProducts(query, { category, limit = 10 } = {}) {
   const q = tokens(query);
+  const rawPhrase = rawTokens(query).join(" ");
   return INDEX
     .filter((e) => !category || e.p.category === category)
-    .map((e) => ({ e, s: score(e, q) }))
+    .map((e) => ({ e, s: score(e, q, rawPhrase) }))
     .filter((x) => x.s >= 5) // at least half of the meaningful words match
     .sort((a, b) => b.s - a.s || a.e.p.price_cents - b.e.p.price_cents)
     .slice(0, Math.max(1, Math.min(limit, 25)))
@@ -371,7 +429,11 @@ export function matchIngredients(lines) {
     if (!chosen) {
       return { input, parsed, status: "out_of_stock", product: publicProduct(best), note: `${best.name} is out of stock and there is no in-stock alternative.` };
     }
-    const { packs, note } = packsFor(chosen, parsed.quantity, parsed.unit);
+    const wanted = packsFor(chosen, parsed.quantity, parsed.unit);
+    const packs = Math.min(wanted.packs, chosen.stock);
+    const note = packs < wanted.packs
+      ? `Only ${chosen.stock} in stock; the recipe needs ${wanted.packs}.${wanted.note ? ` ${wanted.note}` : ""}`
+      : wanted.note;
     return {
       input,
       parsed,
@@ -418,7 +480,9 @@ export function quoteCart(items) {
     if (!product) { rejected.push({ product_id: id ?? null, reason: "unknown_product" }); continue; }
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) { rejected.push({ product_id: id, reason: `quantity must be an integer from 1 to ${MAX_QTY}` }); continue; }
     if (product.stock <= 0) { rejected.push({ product_id: id, reason: "out_of_stock" }); continue; }
-    merged.set(id, Math.min(MAX_QTY, (merged.get(id) || 0) + qty));
+    const total = (merged.get(id) || 0) + qty;
+    if (total > product.stock) { rejected.push({ product_id: id, reason: `only ${product.stock} in stock`, available: product.stock }); continue; }
+    merged.set(id, Math.min(MAX_QTY, total));
   }
   const lines = [...merged].map(([id, quantity]) => {
     const p = getProduct(id);

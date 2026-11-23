@@ -41,7 +41,7 @@ async function refresh() {
   try {
     const fresh = await quote(cart.lines.map((l) => ({ product_id: l.id, quantity: l.quantity })));
     refreshPrices(fresh);
-    if (fresh.rejected.length) $("#status").textContent = `${fresh.rejected.length} item(s) are no longer available and were removed.`;
+    if (fresh.rejected.length) $("#status").textContent = "Some items changed: quantities above the store's stock were reduced, and items no longer sold were removed.";
   } catch { /* keep stored prices if the server is unreachable */ }
   render();
 }

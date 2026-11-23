@@ -13,6 +13,7 @@
     "api/mcp/public.js": { "maxDuration": 15 },
     "api/products.js": { "maxDuration": 10 },
     "api/match.js": { "maxDuration": 10 },
+    "api/lookup.js": { "maxDuration": 10 },
     "api/cart/quote.js": { "maxDuration": 10 }
   },
   "headers": [

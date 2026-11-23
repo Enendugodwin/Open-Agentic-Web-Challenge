@@ -112,7 +112,7 @@ test("public MCP: initialize, tools/list, match_ingredients, search_products", a
 
   const list = await mcpPost(url, rpc(2, "tools/list"));
   const tools = list.json.result.tools;
-  assert.deepEqual(tools.map((t) => t.name).sort(), ["create_cart_link", "match_ingredients", "search_products"]);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ["create_cart_link", "lookup_products", "match_ingredients", "search_products"]);
   for (const t of tools) assert.equal(t.annotations.readOnlyHint, true, t.name);
 
   const call = await mcpPost(url, rpc(3, "tools/call", { name: "match_ingredients", arguments: { ingredients: ["400 g spaghetti", "4 large eggs", "water"] } }));

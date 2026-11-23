@@ -46,12 +46,13 @@ export function applyQuote(quote, requestId) {
   const cart = readCart();
   if (requestId && cart.applied.includes(requestId)) return { cart, duplicate: true };
   for (const line of quote.lines || []) {
+    const cap = Math.min(MAX_QTY, line.stock?.available ?? MAX_QTY); // never more than the store has
     const existing = cart.lines.find((l) => l.id === line.id);
     if (existing) {
-      existing.quantity = Math.min(MAX_QTY, existing.quantity + line.quantity);
+      existing.quantity = Math.min(cap, existing.quantity + line.quantity);
       existing.price_cents = line.price_cents;
     } else {
-      cart.lines.push({ id: line.id, name: line.name, size: line.size, price_cents: line.price_cents, quantity: Math.min(MAX_QTY, line.quantity) });
+      cart.lines.push({ id: line.id, name: line.name, size: line.size, price_cents: line.price_cents, quantity: Math.min(cap, line.quantity) });
     }
   }
   if (requestId) cart.applied = [...cart.applied, requestId].slice(-MAX_APPLIED);
@@ -69,7 +70,11 @@ export function setQuantity(id, quantity) {
 export function refreshPrices(quote) {
   const cart = readCart();
   const byId = new Map((quote.lines || []).map((l) => [l.id, l]));
-  cart.lines = cart.lines.filter((l) => byId.has(l.id)).map((l) => ({ ...l, price_cents: byId.get(l.id).price_cents }));
+  // Lines over the stock on hand are capped to what is available, not dropped.
+  const capped = new Map((quote.rejected || []).filter((r) => r.available > 0).map((r) => [r.product_id, r.available]));
+  cart.lines = cart.lines
+    .filter((l) => byId.has(l.id) || capped.has(l.id))
+    .map((l) => (byId.has(l.id) ? { ...l, price_cents: byId.get(l.id).price_cents } : { ...l, quantity: Math.min(l.quantity, capped.get(l.id)) }));
   return save(cart);
 }
 
