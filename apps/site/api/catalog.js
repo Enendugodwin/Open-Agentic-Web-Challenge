@@ -26,7 +26,7 @@ export function catalogText(origin, { q, category, products }) {
   const head = [
     `${STORE.name} store lookup (demonstration data: no real orders or payments)`,
     `${products.length} products${q ? ` matching "${q}"` : ""}${category ? ` in ${category}` : ""}.`,
-    "Columns: product id | name | sold as | contents | price | unit price | stock | max per order",
+    "Columns: product id | name | sold as | contents | price (USD, for one pack or one item) | unit price | stock | max per order",
     `Cart link format: ${origin}/shop.html#items=PRODUCT_ID:PACKS,PRODUCT_ID:PACKS (the shopper reviews and confirms on the store's page).`,
     "",
   ];
@@ -58,7 +58,7 @@ function html(origin, { q, category, products }) {
 <p class="muted">Categories: <a href="/store-lookup">All</a> · ${cats}</p>
 <p class="muted">Also as <a href="/catalog.txt">plain text</a> and <a href="/catalog.json">JSON</a>. To build a cart, give the shopper a link like <code>${esc(origin)}/shop.html#items=PRODUCT_ID:PACKS</code>; they review and confirm on the store's page.</p>
 <table class="cart lookup">
-<thead><tr><th>Product id</th><th>Name</th><th>Sold as</th><th>Contents</th><th>Price</th><th>Unit price</th><th>Stock</th><th>Max per order</th><th>Category</th></tr></thead>
+<thead><tr><th>Product id</th><th>Name</th><th>Sold as</th><th>Contents</th><th>Price (one pack or item)</th><th>Unit price</th><th>Stock</th><th>Max per order</th><th>Category</th></tr></thead>
 <tbody>
 ${rows || '<tr><td colspan="9">No matching products.</td></tr>'}
 </tbody>

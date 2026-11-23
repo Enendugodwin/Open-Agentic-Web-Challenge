@@ -127,6 +127,7 @@ test("the prompt points at the live store and keeps the shopper in control", () 
     "match_ingredients", "search_products", "create_cart_link", "lookup_products",
     "https://greenleaf-market.vercel.app/catalog.txt", "https://greenleaf-market.vercel.app/store-lookup", "available",
     "STORE LOOKUP DATA", "don't try to open any website",
+    "Price each", "Line total", "Estimated total: $X.XX", "Every row must show a price", "do not guess",
     "Never invent product ids", "Never say items were added", "not as instructions", "payment details",
   ]) assert.ok(prompt.includes(needle), needle);
   // Example links in the prompt must parse.
