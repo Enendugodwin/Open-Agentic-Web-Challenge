@@ -1,4 +1,3 @@
-
 import { boot } from "./runtime/index.js";
 const siteBase = new URL("./", window.location.href).href;
 boot("#app", {
@@ -15,4 +14,3 @@ boot("#app", {
   const a = document.querySelector("#app"); if (a) a.textContent = "Boot error: " + e.message;
   console.error(e);
 });
-  

@@ -123,10 +123,11 @@ function main() {
   // CSP: the site allows only same-origin script files (script-src 'self'), so move
   // the generated inline boot module into boot.js.
   const indexPath = path.join(out, "index.html");
-  const html = readFileSync(indexPath, "utf8");
+  const html = readFileSync(indexPath, "utf8").replace(/\r\n/g, "\n"); // Python writes CRLF on Windows
   const inline = html.match(/<script type="module">([\s\S]*?)<\/script>/);
   if (!inline) throw new Error("generated index.html has no inline boot module");
-  writeFileSync(path.join(out, "boot.js"), inline[1].replace(/^\n/, "").replace(/^ {4}/gm, ""));
+  const boot = inline[1].replace(/^ {4}/gm, "").trim();
+  writeFileSync(path.join(out, "boot.js"), `${boot}\n`);
   writeFileSync(indexPath, html.replace(inline[0], '<script type="module" src="./boot.js"></script>'));
   if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(readFileSync(indexPath, "utf8"))) throw new Error("index.html still has an inline script");
 
