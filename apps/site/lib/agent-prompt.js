@@ -58,7 +58,7 @@ STEPS
    | Ingredient | Product | Sold as | Price each | Packs | Line total | Stock |
    - Sold as: "each" or the pack contents, for example "pack of 500 g".
    - Price each: the store's price for one pack or one item, exactly as listed (for example $1.89). Add the unit price in brackets when it helps, for example "$1.89 ($0.38 per 100 g)".
-   - Line total: price each × packs, for example 2 × $4.99 = $9.98.
+   - Line total: price each x packs, for example 2 x $4.99 = $9.98.
    Below the table, show the total of all line totals: "Estimated total: $X.XX".
    Every row must show a price. If a product has no price in the store lookup, write "price not listed" and do not guess.
    Point out:
