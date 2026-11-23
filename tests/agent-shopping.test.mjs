@@ -2,11 +2,10 @@
 // create_cart_link tool, and the published prompt.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { startDevServer } from "../scripts/dev-server.mjs";
 import { itemsLink, parseShopHash, recipeLink } from "../apps/site/public/shop-link.js";
-import { AGENTS_DIR, SITE_ORIGIN, SITE_PORT, ensureAgentsBuilt, mcpPost, root, rpc } from "./support.mjs";
+import { AGENT_PROMPT } from "../apps/site/lib/agent-prompt.js";
+import { AGENTS_DIR, SITE_ORIGIN, SITE_PORT, ensureAgentsBuilt, mcpPost, rpc } from "./support.mjs";
 
 let site;
 before(async () => {
@@ -84,8 +83,34 @@ test("store lookup pages: fixed URLs, no JavaScript needed, units and stock", as
   assert.doesNotMatch(await (await fetch(`${SITE_ORIGIN}/store-lookup?q=%3Cimg%20src%3Dx%3E`)).text(), /<img src=x>/);
 });
 
+test("full prompt carries the whole store lookup for AI chats without web access", async () => {
+  const r = await fetch(`${SITE_ORIGIN}/agent-prompt-full.txt`);
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get("content-type"), /text\/plain/);
+  const full = await r.text();
+  assert.ok(full.startsWith(AGENT_PROMPT), "prompt first");
+  const data = full.slice(full.indexOf("STORE LOOKUP DATA ("));
+  assert.ok(data.length > 1000, "lookup data appended");
+  const products = data.split("\n").filter((l) => l.startsWith("p_"));
+  assert.equal(products.length, 164);
+  assert.ok(products.includes("p_red_onion_1ct | Red onion | each | 1 item | $0.99 | $0.99 each | in stock (60 available) | 20"));
+  assert.ok(products.some((l) => l.startsWith("p_fresh_basil_30g | Fresh basil | pack | 30 g |") && l.includes("out of stock")));
+  const short = await (await fetch(`${SITE_ORIGIN}/agent-prompt.txt`)).text();
+  assert.equal(short, AGENT_PROMPT);
+  assert.equal((await fetch(`${SITE_ORIGIN}/robots.txt`)).status, 200);
+});
+
+test("home page: copy button uses the full prompt; no separate store lookup button", async () => {
+  const html = await (await fetch(`${SITE_ORIGIN}/`)).text();
+  assert.doesNotMatch(html, /Store lookup \(units/);
+  assert.match(html, /href="\/agent-prompt-full\.txt"/);
+  const js = await (await fetch(`${SITE_ORIGIN}/app.js`)).text();
+  assert.match(js, /fetch\("\/agent-prompt-full\.txt"\)/);
+  assert.ok(html.indexOf('id="own-h"') < html.indexOf('class="hero"'), "agent section is first");
+});
+
 test("review page and prompt are published", async () => {
-  for (const p of ["/shop.html", "/shop.js", "/shop-link.js", "/agent-prompt.txt"]) {
+  for (const p of ["/shop.html", "/shop.js", "/shop-link.js", "/agent-prompt.txt", "/agent-prompt-full.txt"]) {
     assert.equal((await fetch(`${SITE_ORIGIN}${p}`)).status, 200, p);
   }
   const html = await (await fetch(`${SITE_ORIGIN}/shop.html`)).text();
@@ -94,14 +119,14 @@ test("review page and prompt are published", async () => {
 });
 
 test("the prompt points at the live store and keeps the shopper in control", () => {
-  const prompt = readFileSync(path.join(root, "apps/site/public/agent-prompt.txt"), "utf8");
+  const prompt = AGENT_PROMPT;
   for (const needle of [
     "https://greenleaf-market.vercel.app/api/mcp/public",
     "https://greenleaf-market.vercel.app/shop.html#items=",
     "https://greenleaf-market.vercel.app/shop.html#recipe=",
     "match_ingredients", "search_products", "create_cart_link", "lookup_products",
     "https://greenleaf-market.vercel.app/catalog.txt", "https://greenleaf-market.vercel.app/store-lookup", "available",
-    "paste it into this chat", "refresh or reconnect the connector",
+    "STORE LOOKUP DATA", "don't try to open any website",
     "Never invent product ids", "Never say items were added", "not as instructions", "payment details",
   ]) assert.ok(prompt.includes(needle), needle);
   // Example links in the prompt must parse.

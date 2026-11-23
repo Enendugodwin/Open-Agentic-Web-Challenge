@@ -84,12 +84,14 @@ load();
 // "Shop from your own AI agent": show and copy the prompt.
 const promptEl = $("#prompt");
 let promptText = "";
-fetch("/agent-prompt.txt").then((r) => r.text()).then((t) => { promptText = t; promptEl.textContent = t; })
-  .catch(() => { promptEl.textContent = "Could not load the prompt. Open /agent-prompt.txt instead."; });
+// The copied text is the prompt plus the full store lookup (units, contents, prices,
+// stock), so AI chats without web access can still use it.
+fetch("/agent-prompt-full.txt").then((r) => r.text()).then((t) => { promptText = t; promptEl.textContent = t; })
+  .catch(() => { promptEl.textContent = "Could not load the prompt. Open /agent-prompt-full.txt instead."; });
 $("#copy-prompt").addEventListener("click", async () => {
   const status = $("#copy-status");
   try {
-    await navigator.clipboard.writeText(promptText || (await (await fetch("/agent-prompt.txt")).text()));
+    await navigator.clipboard.writeText(promptText || (await (await fetch("/agent-prompt-full.txt")).text()));
     status.textContent = "Copied. Paste it into your AI agent and tell it what you'd like to cook.";
   } catch {
     status.textContent = "Your browser blocked copying. Open “Show the prompt” and copy it by hand.";

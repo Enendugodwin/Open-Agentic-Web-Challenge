@@ -6,7 +6,9 @@
     { "source": "/favicon.ico", "destination": "/favicon.svg" },
     { "source": "/store-lookup", "destination": "/api/catalog?format=html" },
     { "source": "/catalog.txt", "destination": "/api/catalog?format=text" },
-    { "source": "/catalog.json", "destination": "/api/catalog?format=json" }
+    { "source": "/catalog.json", "destination": "/api/catalog?format=json" },
+    { "source": "/agent-prompt.txt", "destination": "/api/prompt" },
+    { "source": "/agent-prompt-full.txt", "destination": "/api/prompt?full=1" }
   ],
   "redirects": [
     { "source": "/agents", "destination": "/agents/", "permanent": false }
@@ -18,6 +20,7 @@
     "api/match.js": { "maxDuration": 10 },
     "api/lookup.js": { "maxDuration": 10 },
     "api/catalog.js": { "maxDuration": 10 },
+    "api/prompt.js": { "maxDuration": 10 },
     "api/cart/quote.js": { "maxDuration": 10 }
   },
   "headers": [

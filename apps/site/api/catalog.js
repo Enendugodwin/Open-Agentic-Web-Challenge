@@ -22,7 +22,7 @@ function select(params) {
   return { q, category, products: list.map(publicProduct) };
 }
 
-function text(origin, { q, category, products }) {
+export function catalogText(origin, { q, category, products }) {
   const head = [
     `${STORE.name} store lookup (demonstration data: no real orders or payments)`,
     `${products.length} products${q ? ` matching "${q}"` : ""}${category ? ` in ${category}` : ""}.`,
@@ -75,6 +75,6 @@ export function GET(request) {
   const format = url.searchParams.get("format") || "html";
   const headers = { ...PUBLIC_CORS, "Cache-Control": "public, max-age=60" };
   if (format === "json") return json({ store: STORE.name, demo_data: true, ...data }, { headers });
-  if (format === "text") return new Response(text(url.origin, data), { headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" } });
+  if (format === "text") return new Response(catalogText(url.origin, data), { headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" } });
   return new Response(html(url.origin, data), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
 }

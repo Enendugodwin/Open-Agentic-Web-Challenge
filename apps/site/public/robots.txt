@@ -1,0 +1,3 @@
+# Greenleaf Market demo store: AI agents and crawlers are welcome.
+User-agent: *
+Allow: /
