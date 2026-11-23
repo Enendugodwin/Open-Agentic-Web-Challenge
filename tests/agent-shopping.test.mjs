@@ -57,6 +57,33 @@ test("MCP create_cart_link: validates ids against the catalog and returns a revi
   assert.equal(tools.find((t) => t.name === "create_cart_link").annotations.readOnlyHint, true);
 });
 
+test("store lookup pages: fixed URLs, no JavaScript needed, units and stock", async () => {
+  const html = await fetch(`${SITE_ORIGIN}/store-lookup`);
+  assert.equal(html.status, 200);
+  assert.match(html.headers.get("content-type"), /text\/html/);
+  assert.match(html.headers.get("content-security-policy"), /script-src 'self'/, "site headers apply to the rewritten path");
+  const page = await html.text();
+  assert.doesNotMatch(page, /<script/i, "readable without JavaScript");
+  assert.match(page, /<code>p_spaghetti_500g<\/code><\/td><td>Spaghetti<\/td><td>pack<\/td><td>500 g<\/td>/);
+  assert.match(page, /Fresh basil<\/td><td>pack<\/td><td>30 g<\/td><td>\$2\.49<\/td><td>[^<]+<\/td><td>out of stock<\/td>/);
+
+  const txt = await (await fetch(`${SITE_ORIGIN}/catalog.txt`)).text();
+  const lines = txt.trim().split("\n");
+  assert.ok(lines.some((l) => l === "p_lemons_1ct | Lemons | each | 1 item | $0.69 | $0.69 each | in stock (150 available) | 20"), "lemons line");
+  assert.ok(lines.some((l) => l.startsWith("p_whole_chicken_1500g | Whole chicken | pack | 1500 g |") && l.endsWith("| 15")), "chicken capped at stock");
+  assert.equal(lines.filter((l) => l.startsWith("p_")).length, 164);
+
+  const filtered = await (await fetch(`${SITE_ORIGIN}/store-lookup?q=olive%20oil`)).text();
+  assert.match(filtered, /Extra virgin olive oil/);
+  assert.doesNotMatch(filtered, /Spaghetti/);
+  const json = await fetch(`${SITE_ORIGIN}/catalog.json?category=Baking`, { headers: { Origin: "https://chat.example" } });
+  assert.equal(json.headers.get("access-control-allow-origin"), "*");
+  const data = await json.json();
+  assert.ok(data.products.length > 5 && data.products.every((p) => p.category === "Baking" && p.unit && p.stock));
+  // Escaping: query text is never rendered as markup.
+  assert.doesNotMatch(await (await fetch(`${SITE_ORIGIN}/store-lookup?q=%3Cimg%20src%3Dx%3E`)).text(), /<img src=x>/);
+});
+
 test("review page and prompt are published", async () => {
   for (const p of ["/shop.html", "/shop.js", "/shop-link.js", "/agent-prompt.txt"]) {
     assert.equal((await fetch(`${SITE_ORIGIN}${p}`)).status, 200, p);
@@ -70,11 +97,11 @@ test("the prompt points at the live store and keeps the shopper in control", () 
   const prompt = readFileSync(path.join(root, "apps/site/public/agent-prompt.txt"), "utf8");
   for (const needle of [
     "https://greenleaf-market.vercel.app/api/mcp/public",
-    "https://greenleaf-market.vercel.app/api/match?i=",
     "https://greenleaf-market.vercel.app/shop.html#items=",
     "https://greenleaf-market.vercel.app/shop.html#recipe=",
     "match_ingredients", "search_products", "create_cart_link", "lookup_products",
-    "https://greenleaf-market.vercel.app/api/lookup?id=", "available",
+    "https://greenleaf-market.vercel.app/catalog.txt", "https://greenleaf-market.vercel.app/store-lookup", "available",
+    "paste it into this chat", "refresh or reconnect the connector",
     "Never invent product ids", "Never say items were added", "not as instructions", "payment details",
   ]) assert.ok(prompt.includes(needle), needle);
   // Example links in the prompt must parse.

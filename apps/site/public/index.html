@@ -19,6 +19,21 @@
   </header>
 
   <main class="wrap">
+    <section aria-labelledby="own-h" class="own">
+      <h2 id="own-h">Shop from your own AI agent</h2>
+      <p>Already use ChatGPT, Claude, Gemini, Copilot or another assistant? Copy this prompt into it. Your agent finds the ingredients in our store and gives you a cart link. You review the items here and confirm. Your agent can't add anything or pay on its own.</p>
+      <p class="actions">
+        <button type="button" id="copy-prompt">Copy the prompt</button>
+        <a class="ghost" href="/agent-prompt.txt">Open as text</a>
+        <a class="ghost" href="/store-lookup">Store lookup (units &amp; stock)</a>
+      </p>
+      <p class="muted" id="copy-status" role="status"></p>
+      <details>
+        <summary>Show the prompt</summary>
+        <pre id="prompt" class="prompt">Loading…</pre>
+      </details>
+    </section>
+
     <section class="hero">
       <h1>Got a recipe? We'll find every ingredient.</h1>
       <p>Paste a recipe, or just name a dish, and our shopping assistant matches each ingredient to a product, suggests pack sizes and substitutes, and fills your cart after you confirm. You don't need an AI account or key.</p>
@@ -37,20 +52,6 @@
       <ul id="products" class="grid"></ul>
     </section>
 
-    <section aria-labelledby="own-h" class="own">
-      <h2 id="own-h">Shop from your own AI agent</h2>
-      <p>Already use ChatGPT, Claude, Gemini, Copilot or another assistant? Copy this prompt into it. Your agent finds the ingredients in our store and gives you a cart link. You review the items here and confirm. Your agent can't add anything or pay on its own.</p>
-      <p class="actions">
-        <button type="button" id="copy-prompt">Copy the prompt</button>
-        <a class="ghost" href="/agent-prompt.txt">Open as text</a>
-      </p>
-      <p class="muted" id="copy-status" role="status"></p>
-      <details>
-        <summary>Show the prompt</summary>
-        <pre id="prompt" class="prompt">Loading…</pre>
-      </details>
-    </section>
-
     <section aria-labelledby="dev-h" class="dev">
       <h2 id="dev-h">For agent builders</h2>
       <p>This store publishes an open agent network that conforms to the
@@ -59,7 +60,7 @@
       <ul>
         <li>Peer network URL: <code id="peer-url">/agents/market_assistant</code></li>
         <li><a href="/agents/agent-manifest.json">agent-manifest.json</a> · <a href="/agents/market_assistant.network.json">market_assistant.network.json</a> · <a href="/agents/links.json">links.json</a> (CORS enabled)</li>
-        <li>Public read-only MCP server: <code id="mcp-url">/api/mcp/public</code> (tools <code>match_ingredients</code>, <code>search_products</code>)</li>
+        <li>Public read-only MCP server: <code id="mcp-url">/api/mcp/public</code> (tools <code>match_ingredients</code>, <code>search_products</code>, <code>lookup_products</code>, <code>create_cart_link</code>)</li>
         <li>Cart changes stay on this site: the <code>add_to_cart</code> action runs only here, after the shopper confirms.</li>
       </ul>
     </section>

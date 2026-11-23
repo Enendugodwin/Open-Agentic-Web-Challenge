@@ -3,7 +3,10 @@
   "framework": null,
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/favicon.ico", "destination": "/favicon.svg" }
+    { "source": "/favicon.ico", "destination": "/favicon.svg" },
+    { "source": "/store-lookup", "destination": "/api/catalog?format=html" },
+    { "source": "/catalog.txt", "destination": "/api/catalog?format=text" },
+    { "source": "/catalog.json", "destination": "/api/catalog?format=json" }
   ],
   "redirects": [
     { "source": "/agents", "destination": "/agents/", "permanent": false }
@@ -14,6 +17,7 @@
     "api/products.js": { "maxDuration": 10 },
     "api/match.js": { "maxDuration": 10 },
     "api/lookup.js": { "maxDuration": 10 },
+    "api/catalog.js": { "maxDuration": 10 },
     "api/cart/quote.js": { "maxDuration": 10 }
   },
   "headers": [

@@ -32,6 +32,7 @@ export async function startDevServer({ port = 3000, host = "127.0.0.1", agentsDi
   const publicDir = path.join(siteDir, vercel.outputDirectory || "public");
   const headerRules = (vercel.headers || []).map((r) => ({ re: toRegex(r.source), headers: r.headers }));
   const redirects = (vercel.redirects || []).map((r) => ({ re: toRegex(r.source), ...r }));
+  const rewrites = (vercel.rewrites || []).map((r) => ({ re: toRegex(r.source), ...r }));
 
   const headersFor = (pathname) => {
     const out = {};
@@ -59,6 +60,15 @@ export async function startDevServer({ port = 3000, host = "127.0.0.1", agentsDi
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || `${host}:${port}`}`);
+    const headerPath = decodeURIComponent(url.pathname); // headers match the requested path, as on Vercel
+    for (const r of rewrites) {
+      if (r.re.test(headerPath)) {
+        const dest = new URL(r.destination, url);
+        url.pathname = dest.pathname;
+        dest.searchParams.forEach((v, k) => url.searchParams.set(k, v));
+        break;
+      }
+    }
     const pathname = decodeURIComponent(url.pathname);
     try {
       for (const r of redirects) {
@@ -82,7 +92,7 @@ export async function startDevServer({ port = 3000, host = "127.0.0.1", agentsDi
           body: hasBody ? Readable.toWeb(req) : undefined, duplex: hasBody ? "half" : undefined,
         });
         const response = await fn(request);
-        const out = { ...headersFor(pathname) };
+        const out = { ...headersFor(headerPath) };
         response.headers.forEach((v, k) => { out[k] = v; });
         res.writeHead(response.status, out);
         if (response.body && req.method !== "HEAD") {
