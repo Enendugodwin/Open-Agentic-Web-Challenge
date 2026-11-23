@@ -203,6 +203,10 @@ tests/                              node:test suites (catalog, HTTP, runtime end
 docs/adr/, docs/screenshots/        decisions and README screenshots
 ```
 
+## Requirements
+
+Software, dependency versions, environment variables and the spec/challenge compliance checklist are in [REQUIREMENTS.md](REQUIREMENTS.md).
+
 ## Run it locally
 
 Requirements: Node 20.x, Python 3.10+ and git.
