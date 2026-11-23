@@ -9,6 +9,7 @@
     "api/infer/v1/chat/completions.js": { "maxDuration": 60 },
     "api/mcp/public.js": { "maxDuration": 15 },
     "api/products.js": { "maxDuration": 10 },
+    "api/match.js": { "maxDuration": 10 },
     "api/cart/quote.js": { "maxDuration": 10 }
   },
   "headers": [

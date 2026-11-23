@@ -36,6 +36,20 @@
       <ul id="products" class="grid"></ul>
     </section>
 
+    <section aria-labelledby="own-h" class="own">
+      <h2 id="own-h">Shop from your own AI agent</h2>
+      <p>Already use ChatGPT, Claude, Gemini, Copilot or another assistant? Copy this prompt into it. Your agent finds the ingredients in our store and gives you a cart link. You review the items here and confirm. Your agent can't add anything or pay on its own.</p>
+      <p class="actions">
+        <button type="button" id="copy-prompt">Copy the prompt</button>
+        <a class="ghost" href="/agent-prompt.txt">Open as text</a>
+      </p>
+      <p class="muted" id="copy-status" role="status"></p>
+      <details>
+        <summary>Show the prompt</summary>
+        <pre id="prompt" class="prompt">Loading…</pre>
+      </details>
+    </section>
+
     <section aria-labelledby="dev-h" class="dev">
       <h2 id="dev-h">For agent builders</h2>
       <p>This store publishes an open agent network that conforms to the

@@ -80,3 +80,18 @@ async function load() {
 
 $("#search").addEventListener("submit", (e) => { e.preventDefault(); load(); });
 load();
+
+// "Shop from your own AI agent": show and copy the prompt.
+const promptEl = $("#prompt");
+let promptText = "";
+fetch("/agent-prompt.txt").then((r) => r.text()).then((t) => { promptText = t; promptEl.textContent = t; })
+  .catch(() => { promptEl.textContent = "Could not load the prompt. Open /agent-prompt.txt instead."; });
+$("#copy-prompt").addEventListener("click", async () => {
+  const status = $("#copy-status");
+  try {
+    await navigator.clipboard.writeText(promptText || (await (await fetch("/agent-prompt.txt")).text()));
+    status.textContent = "Copied. Paste it into your AI agent and tell it what you'd like to cook.";
+  } catch {
+    status.textContent = "Your browser blocked copying. Open “Show the prompt” and copy it by hand.";
+  }
+});
