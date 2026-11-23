@@ -1,0 +1,31 @@
+name: smoke
+
+# Runs after Vercel reports a successful deployment (GitHub integration), from a
+# GitHub-hosted runner, which is a separate origin from the deployment.
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Deployment URL (https://...)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    # Production only: committed artifacts name the production origin (ADR 0003), so
+    # preview URLs would fail the origin checks by design.
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Smoke checks
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          TARGET_URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url }}
+        run: node scripts/smoke.mjs --url "$TARGET_URL"

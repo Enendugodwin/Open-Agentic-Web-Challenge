@@ -1,0 +1,19 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "volunteer_desk",
+      "front_man": "desk",
+      "aliases": [
+        "volunteer_desk",
+        "desk"
+      ],
+      "url": "https://shift-handoff.vercel.app/agents/volunteer_desk"
+    }
+  ],
+  "imports": [],
+  "site": "https://shift-handoff.vercel.app/agents",
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

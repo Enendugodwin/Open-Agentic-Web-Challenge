@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install nsDeploy build dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q -r vendor/nsdeploy/requirements.txt
+      - name: Install site dependencies
+        run: npm ci --prefix apps/site
+      - name: Tests (build, HTTP checks, headless runtime end-to-end)
+        run: npm test
+      - name: Committed artifacts are up to date
+        run: |
+          SITE_URL=$(node -e "const m=require('./apps/site/public/agents/agent-manifest.json');console.log(new URL(m.llm_router.base_url).origin)")
+          node scripts/build-agents.mjs --site-url "$SITE_URL"
+          git diff --exit-code -- apps/site/public/agents || (echo "Run: npm run build:agents -- --site-url $SITE_URL and commit the result" && exit 1)

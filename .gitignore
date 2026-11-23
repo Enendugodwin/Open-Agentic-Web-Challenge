@@ -1,0 +1,11 @@
+node_modules/
+.venv/
+.build/
+.build-test/
+.build-dev/
+.vercel/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.log

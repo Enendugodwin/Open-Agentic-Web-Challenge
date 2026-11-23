@@ -1,0 +1,14 @@
+{
+  "name": "shift-handoff",
+  "private": true,
+  "type": "module",
+  "description": "Open agentic web demo: a person starts a task on a website and lets their own AI agent continue it.",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=20.3" },
+  "scripts": {
+    "build:agents": "node scripts/build-agents.mjs",
+    "dev": "node scripts/build-agents.mjs --site-url http://127.0.0.1:3000 --out .build-dev/agents && node scripts/dev-server.mjs --port 3000 --agents-dir .build-dev/agents",
+    "test": "node --test --test-concurrency=1 tests/",
+    "smoke": "node scripts/smoke.mjs"
+  }
+}

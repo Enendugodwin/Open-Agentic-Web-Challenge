@@ -1,0 +1,82 @@
+{
+  "brand": "Northside Pantry volunteer desk",
+  "networks": [
+    {
+      "name": "volunteer_desk",
+      "front_man": "desk",
+      "hocon": "./volunteer_desk.network.json",
+      "description": "Volunteer desk (demo data)",
+      "tags": [
+        "deployed",
+        "nsdeploy"
+      ],
+      "sample_queries": [
+        "Which Saturday morning shifts still have space?",
+        "I can drive. Are there any delivery shifts next week?"
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "https://shift-handoff.vercel.app/api/infer/v1",
+    "mock": false,
+    "site_funded": true,
+    "byok_router": "",
+    "note": "Publisher-funded default router for this site's own runtime. Informational for peers: a caller always uses its own router."
+  },
+  "allowed_peers": [
+    "https://shift-handoff.vercel.app/agents"
+  ],
+  "peer_policy": {
+    "mode": "open",
+    "deny_origins": [],
+    "note": "Public agent sites are reachable like web pages; credentials and capabilities do not transfer."
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "volunteer_desk",
+    "front_man": "desk",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#15803d"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "volunteer_desk",
+        "front_man": "desk",
+        "aliases": [
+          "volunteer_desk",
+          "desk"
+        ],
+        "url": "https://shift-handoff.vercel.app/agents/volunteer_desk"
+      }
+    ],
+    "imports": [],
+    "site": "https://shift-handoff.vercel.app/agents",
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": true,
+    "browser_mock": false,
+    "direct_byok": false,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false,
+    "site_funded_inference": true
+  },
+  "mcp": [
+    {
+      "url": "https://shift-handoff.vercel.app/api/mcp/public",
+      "tools": [
+        "list_shifts"
+      ],
+      "auth": "none",
+      "effect": "read"
+    }
+  ]
+}

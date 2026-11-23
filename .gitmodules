@@ -1,0 +1,3 @@
+[submodule "vendor/nsdeploy"]
+	path = vendor/nsdeploy
+	url = https://github.com/cognizant-ai-lab/nsdeploy.git

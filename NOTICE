@@ -1,0 +1,7 @@
+Shift Handoff (Northside Pantry open agentic web demo)
+
+This product includes software developed by Cognizant AI Lab:
+  nsDeploy browser runtime (https://github.com/cognizant-ai-lab/nsdeploy),
+  vendored in packages/runtime and pinned as vendor/nsdeploy,
+  licensed under the Apache License, Version 2.0.
+  Modifications are listed in packages/runtime/PATCHES.md.

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Northside Pantry · Volunteer shifts (demo)</title>
+  <meta name="description" content="Open agentic web demo: find volunteer shifts yourself, ask the site's agent, or load the agent network from another site." />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="alternate" type="application/json" href="/agents/agent-manifest.json" title="Agent manifest" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="/">Northside Pantry</a>
+      <span class="tag">Demo site · synthetic data</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Volunteer this week</h1>
+      <p>Pick a shift below, or ask our volunteer desk agent. You don't need an AI account or key; the site provides the model for its own agent.</p>
+      <p><a class="button" href="/agents/">Ask the volunteer desk agent</a></p>
+    </section>
+
+    <section aria-labelledby="shifts-h">
+      <h2 id="shifts-h">Open shifts, next two weeks</h2>
+      <p class="muted" id="shifts-status">Loading shifts…</p>
+      <table class="shifts" id="shifts" hidden>
+        <thead><tr><th>Date</th><th>Time</th><th>Role</th><th>Spots left</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="dev-h" class="dev">
+      <h2 id="dev-h">For agent builders</h2>
+      <p>This site publishes an open agent network that conforms to the
+        <a href="https://github.com/cognizant-ai-labs/agentic-web/blob/main/docs/worldwide_agentic_web_mvp_spec.md">Worldwide Agentic Web MVP profile</a>.
+        A conforming runtime on another origin can load it after its user approves, and run it in that user's browser with the caller's own model.</p>
+      <ul>
+        <li>Peer network URL: <code id="peer-url">/agents/volunteer_desk</code></li>
+        <li><a href="/agents/agent-manifest.json">agent-manifest.json</a> · <a href="/agents/volunteer_desk.network.json">volunteer_desk.network.json</a> · <a href="/agents/links.json">links.json</a> (CORS enabled)</li>
+        <li>Public read-only MCP server: <code id="mcp-url">/api/mcp/public</code> (tool <code>list_shifts</code>)</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="wrap muted">Northside Pantry is fictional. Shift data is generated for demonstration.</footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

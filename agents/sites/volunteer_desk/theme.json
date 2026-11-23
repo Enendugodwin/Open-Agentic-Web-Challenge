@@ -1,0 +1,20 @@
+{
+    "brand":  "Northside Pantry",
+    "icon":  "",
+    "tagline":  "Volunteer desk (demo data)",
+    "hero":  "",
+    "font":  "\"Segoe UI\", system-ui, sans-serif",
+    "radius":  16,
+    "colors":  {
+                   "primary":  "#15803d",
+                   "accent":  "#ca8a04",
+                   "bg":  "#f3f8f1",
+                   "bg_tint":  "#e3f1dc",
+                   "fg":  "#1c2b1a",
+                   "muted":  "#5f7258",
+                   "border":  "#d3e5c9",
+                   "msgbg":  "#e6f2df",
+                   "panelbg":  "#fafdf8"
+               },
+    "welcome":  null
+}
