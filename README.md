@@ -26,6 +26,21 @@ The test scenario:
 4. The assistant proposes `add_to_cart`. You review the exact items and confirm.
 5. The cart page shows the result.
 
+## Shop from your own AI agent
+
+Copy the prompt from the home page (**Shop from your own AI agent**) or from
+<https://greenleaf-market.vercel.app/agent-prompt.txt> into ChatGPT, Claude, Gemini,
+Copilot or any other assistant, then say what you'd like to cook.
+
+1. The agent finds the ingredients in one of three ways, depending on what it supports:
+   - the MCP server `/api/mcp/public`;
+   - `GET /api/match?i=...` for agents that can open web pages;
+   - a recipe link, for agents with no tools.
+2. It gives you a cart link (`/shop.html#items=...` or `#recipe=...`).
+3. You open the link, review the items on the store's page and click **Add to cart**.
+
+The agent can't add items, order or pay by itself. See `docs/adr/0005`.
+
 ## Layout
 
 ```
