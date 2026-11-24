@@ -16,7 +16,8 @@
 
 import { clientIp, createRateLimiter, isSameOriginBrowserRequest, json, readJsonBody } from "../../../../lib/http.js";
 
-const perIp = createRateLimiter({ limit: 40, windowMs: 10 * 60_000 });
+// One assistant question can take ~10 model calls (agent delegation + tools).
+const perIp = createRateLimiter({ limit: 200, windowMs: 10 * 60_000 });
 const MAX_MESSAGES = 80;
 const ALLOWED_FIELDS = ["messages", "tools", "tool_choice", "stream", "temperature"];
 
