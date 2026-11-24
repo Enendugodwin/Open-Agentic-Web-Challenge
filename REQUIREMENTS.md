@@ -57,7 +57,7 @@ Install with `python -m venv .venv` and then
 | --- | --- | --- |
 | Vercel account | To deploy | A Hobby (free) plan works. Project Root Directory: `apps/site`. Framework preset: "Other". |
 | GitHub account | Optional | CI (`.github/workflows/ci.yml`) and post-deploy smoke checks (`smoke.yml`) |
-| AI model provider key (any OpenAI-compatible provider) | Only for the store's **built-in** assistant at `/agents/` | Set it as `INFERENCE_API_KEY`. "Shop from your own AI agent" needs no key. |
+| AI model provider key (any OpenAI-compatible provider) | Only for the store's **built-in** assistant at `/agents/` | Set it as `INFERENCE_API_KEY`. The live demo uses OpenRouter with `INFERENCE_BASE_URL=https://openrouter.ai/api/v1`, `INFERENCE_MODEL=nvidia/nemotron-3.5-lightning:free`, `INFERENCE_MAX_TOKENS=4096` and `INFERENCE_EXTRA_BODY={"reasoning":{"effort":"low","exclude":true}}`. "Shop from your own AI agent" needs no key. |
 
 Environment variables (Vercel → Project → Settings → Environment Variables; see `.env.example`):
 
@@ -112,8 +112,8 @@ Status key: ✅ met and evidenced · ⚠️ built, not yet shown live · ❌ not
 | # | Check | Status | Evidence / gap |
 | --- | --- | --- | --- |
 | 1 | Publish a two-agent HOCON network and a manifest from an ordinary HTTPS host | ✅ | `assistant` → `ingredient_finder`, published at `/agents/agent-manifest.json`, `market_assistant.network.json` and `links.json` on Vercel over HTTPS. Covered by smoke checks T-SMK-01 to 04. |
-| 2 | Load and run it in a browser with the site's published default router and model | ❌ on the live site | The runtime and the site-paid router (`/api/infer/v1`) are built and tested with a fake model. The live site has no `INFERENCE_API_KEY` yet. |
-| 3 | Call an internal agent and a grounded capability (MCP or local site action) | ⚠️ | Delegation, the MCP tools and the `add_to_cart` site action all pass headless tests. Not yet shown live with a real model. |
+| 2 | Load and run it in a browser with the site's published default router and model | ✅ | Live in Edge on 2026-11-23: `/agents/` runs the network with the site-paid router `/api/infer/v1` (OpenRouter `nvidia/nemotron-3.5-lightning:free`), and the badge shows a verified real model. |
+| 3 | Call an internal agent and a grounded capability (MCP or local site action) | ✅ | Live: `assistant` → `ingredient_finder` → MCP `match_ingredients`, then the `add_to_cart` site action with the runtime's confirmation dialog. The receipt said `added` and the cart showed 6 items. |
 | 4 | After user approval, load an exact named network from a second origin and run it locally | ❌ | The artifacts allow cross-origin access, but there is no second-origin caller site yet (planned recipe site, M3). |
 | 5 | With a user key active, the second site never receives it and can't change the caller's router | ➖ / ❌ | The site doesn't offer "bring your own key", so the key part doesn't apply. The router part is enforced by the runtime but not yet shown across two sites. |
 | 6 | Private context is absent at the peer unless a field is explicitly allowed | ❌ | The network allows only `locale` downstream (`allow.to_downstream.sly_data`), but this isn't yet shown across sites. |
@@ -137,7 +137,7 @@ Status key: ✅ met and evidenced · ⚠️ built, not yet shown live · ❌ not
 | Consent before third-party contact (§3.2, §5) | ✅ (runtime) | Provided by nsDeploy; the store's MCP server is same-origin |
 
 What's needed for full compliance:
-1. a model key in Vercel (fixes check 2 and lets checks 3 and 7 be shown live);
+1. ~~a model key in Vercel~~ (done: checks 2 and 3 are now shown live);
 2. the second-origin recipe site (checks 4, 5 and 6, and the rest of 7);
 3. a recorded demo of these checks.
 

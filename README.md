@@ -75,9 +75,10 @@ The store also has a built-in shopping assistant at
 <https://greenleaf-market.vercel.app/agents/>. It runs the store's published agent
 network in your browser and asks you to confirm before adding items to the cart.
 
-It uses a model paid for by the site, so visitors never need a key. It only answers
-once the site owner sets a model key (`INFERENCE_API_KEY`) in Vercel. Until then,
-use the "Shop from your own AI agent" flow above.
+It uses a model provided by the site (a free OpenRouter model), so visitors never need a key. Ask it for a recipe:
+it delegates to `ingredient_finder`, which calls the store's MCP tools. You get the product table and total, and
+then an **Add to cart** button. The runtime then asks you to confirm the exact items. A question takes about a
+minute, because the free model reasons before it answers.
 
 ![The store's built-in shopping assistant](docs/screenshots/7-store-assistant.png)
 
