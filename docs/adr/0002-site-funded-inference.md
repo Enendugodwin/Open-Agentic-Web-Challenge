@@ -38,3 +38,14 @@ pages.
 - Our pages cost the publisher money. Abuse limits are needed (ADR 0003).
 - A non-browser client can forge `Origin`. Rate limits and the per-call token cap
   bound the cost of that, and the kill switch stops it.
+
+## Update: optional "bring your own key" under Developer
+
+The **Developer → AI model** section (`agents/sites/market_assistant/site.js`) lets a visitor switch their own
+browser to another OpenAI-compatible provider, model and key. It uses the runtime's existing BYOK storage
+(`runtime/byok.js`):
+- the key is kept in this browser's storage and attached only to requests to the chosen provider (spec §4);
+- it never goes to the store's server, and the site default stays the site-funded router.
+
+Changing the default model for every visitor stays a server setting (the Vercel `INFERENCE_*` variables),
+because a public page must not change server configuration.

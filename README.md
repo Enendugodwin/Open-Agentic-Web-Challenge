@@ -80,6 +80,11 @@ it delegates to `ingredient_finder`, which calls the store's MCP tools. You get 
 then an **Add to cart** button. The runtime then asks you to confirm the exact items. A question takes about a
 minute, because the free model reasons before it answers.
 
+To use a different model, open **Developer → AI model**. Pick a provider (OpenRouter, OpenAI, Groq, Google Gemini
+or any OpenAI-compatible API), enter the model and your API key, then select **Test connection** and **Save and use**.
+This changes the model for your browser only. Your key stays in your browser and goes only to that provider.
+**Use site default** switches back, and **Forget saved keys** deletes the saved keys.
+
 ![The store's built-in shopping assistant](docs/screenshots/7-store-assistant.png)
 
 ---
