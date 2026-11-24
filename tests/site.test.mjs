@@ -163,6 +163,26 @@ test("inference proxy: forwards same-origin requests with the server key and mod
   assert.equal(up.body.user, undefined, "unknown fields are not forwarded");
 });
 
+test("inference proxy: owner-set extra options are merged but cannot override protected fields", async () => {
+  llm.requests.length = 0;
+  process.env.INFERENCE_EXTRA_BODY = JSON.stringify({ reasoning: { effort: "low", exclude: true }, model: "hijack", max_tokens: 99999, messages: [] });
+  const r = await fetch(`${SITE_ORIGIN}/api/infer/v1/chat/completions`, {
+    method: "POST", headers: sameOrigin, body: JSON.stringify({ stream: true, messages: [{ role: "user", content: "hi" }], reasoning: { effort: "high" } }),
+  });
+  assert.equal(r.status, 200);
+  await r.text();
+  const up = llm.requests[0].body;
+  assert.deepEqual(up.reasoning, { effort: "low", exclude: true }, "owner option applied; client cannot set it");
+  assert.equal(up.model, "server-chosen-model");
+  assert.equal(up.max_tokens, 300);
+  assert.equal(up.messages.length, 1);
+  process.env.INFERENCE_EXTRA_BODY = "not json";
+  const r2 = await fetch(`${SITE_ORIGIN}/api/infer/v1/chat/completions`, { method: "POST", headers: sameOrigin, body: '{"messages":[{"role":"user","content":"x"}]}' });
+  assert.equal(r2.status, 200, "bad option JSON is ignored");
+  await r2.text();
+  delete process.env.INFERENCE_EXTRA_BODY;
+});
+
 test("inference proxy: rejects other origins and non-browser callers", async () => {
   llm.requests.length = 0;
   const body = JSON.stringify({ messages: [{ role: "user", content: "hi" }] });

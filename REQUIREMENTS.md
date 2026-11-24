@@ -69,6 +69,7 @@ Environment variables (Vercel → Project → Settings → Environment Variables
 | `INFERENCE_MAX_TOKENS` | `1024` | Output cap per call (maximum 4096) |
 | `INFERENCE_TIMEOUT_MS` | `55000` | How long to wait for the provider |
 | `INFERENCE_DISABLED` | `0` | Set to `1` to switch off site-paid model calls |
+| `INFERENCE_EXTRA_BODY` | (none) | Optional JSON of provider options, for example `{"reasoning":{"effort":"low","exclude":true}}` for OpenRouter reasoning models. It cannot override the model, messages, tools or token cap. |
 
 Never commit real keys. `.env`, `.env.*` and `.vercel/` are git-ignored.
 

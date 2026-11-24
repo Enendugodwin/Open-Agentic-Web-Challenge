@@ -29,7 +29,23 @@ function config() {
     model: env.INFERENCE_MODEL || "gpt-4o-mini",
     maxTokens: Math.min(Number(env.INFERENCE_MAX_TOKENS || 1024) || 1024, 4096),
     timeoutMs: Number(env.INFERENCE_TIMEOUT_MS || 55_000),
+    extraBody: parseExtraBody(env.INFERENCE_EXTRA_BODY),
   };
+}
+
+// Optional provider-specific request options set by the site owner, for example
+// OpenRouter's {"reasoning":{"effort":"low","exclude":true}}. They can never
+// override the model, messages, tools or token cap.
+const PROTECTED = new Set(["model", "messages", "tools", "tool_choice", "stream", "max_tokens", "max_completion_tokens"]);
+function parseExtraBody(raw) {
+  if (!raw) return {};
+  try {
+    const value = JSON.parse(raw);
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return Object.fromEntries(Object.entries(value).filter(([k]) => !PROTECTED.has(k)));
+  } catch {
+    return {};
+  }
 }
 
 function errorBody(code, message) {
@@ -61,7 +77,7 @@ export async function POST(request) {
     return json(errorBody("invalid_request", `messages must be a non-empty array of at most ${MAX_MESSAGES} items.`), { status: 400 });
   }
 
-  const upstreamBody = { model: cfg.model, max_tokens: cfg.maxTokens };
+  const upstreamBody = { ...cfg.extraBody, model: cfg.model, max_tokens: cfg.maxTokens };
   for (const k of ALLOWED_FIELDS) if (input[k] !== undefined) upstreamBody[k] = input[k];
   if (upstreamBody.stream) upstreamBody.stream_options = { include_usage: true };
 
