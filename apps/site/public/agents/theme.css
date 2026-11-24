@@ -20,6 +20,21 @@
 .gm-llm-msg[data-kind=ok]{color:var(--ns-primary)}
 .gm-llm-note{margin:8px 0 0;font-size:11px;color:var(--ns-muted)}
 .gm-llm a{font-size:12px;color:var(--ns-primary)}
+@media (max-width: 820px) {
+  html, body { height: auto !important; overflow: auto !important; }
+  #app { height: auto !important; min-height: 100vh; overflow: visible !important; }
+  .ns-app { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: auto auto auto !important; height: auto !important; overflow: visible !important; padding: 0 10px 16px; box-sizing: border-box; }
+  .ns-split { display: none !important; }
+  .ns-main { grid-column: 1 !important; grid-row: 2 !important; height: 72vh; min-height: 420px; }
+  .ns-agents, .ns-dev { grid-column: 1 !important; grid-row: 3 !important; overflow: visible !important; }
+  .ns-header { flex-wrap: wrap; gap: 6px 10px; }
+  .ns-title { flex: 1 1 100%; font-size: 16px; }
+  .ns-llmbadge { margin-left: 0 !important; font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ns-breadcrumb { display: none !important; }
+  .ns-devtoggle { margin-left: auto; }
+  .gm-nav { padding: 8px 10px; }
+  .gm-llm-actions button { flex: 1 1 auto; }
+}
 html,body{margin:0;height:100%;overflow:hidden}
 body{font-family:var(--ns-font);background:radial-gradient(1200px 500px at 20% -10%,#e2f0da 0%,#f4f8f2 60%)}
 #app{height:100vh;overflow:hidden}

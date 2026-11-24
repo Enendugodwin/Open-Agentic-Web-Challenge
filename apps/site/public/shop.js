@@ -40,11 +40,15 @@ function render() {
     const name = document.createElement("span");
     name.textContent = row.product.name;
     if (row.substituted) name.append(Object.assign(document.createElement("small"), { className: "sub", textContent: " substitute" }));
-    for (const content of [check, name, row.product.size, row.product.price, qty, lineTotal, forCell]) {
+    const labels = ["Add", "Product", "Size", "Price", "Qty", "Total", "For"];
+    [check, name, row.product.size, row.product.price, qty, lineTotal, forCell].forEach((content, i) => {
       const td = document.createElement("td");
+      td.dataset.label = labels[i]; // shown on small screens, where rows become cards
+      if (i === 1) td.className = "cell-name";
+      if (i === 6 && !row.forLine) td.className = "cell-empty";
       td.append(content);
       tr.append(td);
-    }
+    });
     tbody.append(tr);
   }
   $("#review").hidden = rows.length === 0;

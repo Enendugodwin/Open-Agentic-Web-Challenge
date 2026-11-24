@@ -23,11 +23,15 @@ function render() {
     qty.addEventListener("change", () => { setQuantity(line.id, Number(qty.value) || 0); render(); });
     const remove = Object.assign(document.createElement("button"), { type: "button", className: "ghost", textContent: "Remove" });
     remove.addEventListener("click", () => { setQuantity(line.id, 0); render(); });
-    for (const content of [line.name, line.size, money(line.price_cents), qty, money(line.price_cents * line.quantity), remove]) {
+    const labels = ["Product", "Size", "Price", "Qty", "Total", ""];
+    [line.name, line.size, money(line.price_cents), qty, money(line.price_cents * line.quantity), remove].forEach((content, i) => {
       const td = document.createElement("td");
+      td.dataset.label = labels[i]; // shown on small screens, where rows become cards
+      if (i === 0) td.className = "cell-name";
+      if (i === 5) td.className = "cell-action";
       td.append(content);
       tr.append(td);
-    }
+    });
     tbody.append(tr);
   }
   $("#subtotal").textContent = sum.subtotal;

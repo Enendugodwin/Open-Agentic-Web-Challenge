@@ -45,3 +45,39 @@ button:disabled { background: #b9c9b6 !important; cursor: not-allowed; }
 .cart input[type="checkbox"] { width: auto; }
 a.ghost { text-decoration: none; display: inline-block; }
 footer { padding: 32px 20px; font-size: .85rem; }
+
+/* ---- Responsive ---- */
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+.table-wrap > table { min-width: 720px; }
+@media (max-width: 640px) {
+  .wrap { padding: 0 14px; }
+  .bar { gap: 8px; }
+  .tag { display: none; }
+  .brand { font-size: 1.05rem; }
+  h1 { font-size: 1.6rem; }
+  .hero { padding-top: 18px; }
+  .search { flex-wrap: wrap; }
+  .search input { flex: 1 1 100%; }
+  .search button { flex: 1 1 100%; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .actions > * { flex: 1 1 auto; text-align: center; }
+  /* Cart and review tables become one card per product. */
+  .cart.stack thead { display: none; }
+  .cart.stack, .cart.stack tbody, .cart.stack tfoot { display: block; width: 100%; }
+  .cart.stack tr { display: block; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .cart.stack td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 3px 0; border: 0; text-align: right; }
+  .cart.stack td::before { content: attr(data-label); font-size: .85rem; font-weight: 600; color: var(--muted); text-align: left; }
+  .cart.stack td.cell-name { font-weight: 700; font-size: 1.02rem; justify-content: flex-start; text-align: left; }
+  .cart.stack td.cell-name::before, .cart.stack td.cell-action::before { content: none; }
+  .cart.stack td.cell-action { justify-content: flex-end; }
+  .cart.stack tfoot tr { display: flex; justify-content: space-between; font-size: 1.05rem; }
+  .cart.stack tfoot th { padding: 0; border: 0; }
+  .cart.stack tfoot th:empty { display: none; }
+}
+@media (max-width: 380px) {
+  .grid { grid-template-columns: 1fr 1fr; }
+  .cart-link { padding: 6px 10px; }
+}
+code { overflow-wrap: anywhere; }
+a.chip { text-decoration: none; display: inline-block; }
+@media (max-width: 640px) { .cart.stack td.cell-empty { display: none; } }

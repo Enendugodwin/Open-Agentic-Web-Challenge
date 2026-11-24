@@ -36,7 +36,8 @@ export function catalogText(origin, { q, category, products }) {
 
 function html(origin, { q, category, products }) {
   const rows = products.map((p) => `<tr><td><code>${esc(p.id)}</code></td><td>${esc(p.name)}</td><td>${esc(p.unit.sold_as)}</td><td>${esc(contents(p.unit))}</td><td>${esc(p.price)}</td><td>${esc(p.unit.unit_price)}</td><td>${esc(stockText(p.stock))}</td><td>${p.stock.max_per_order}</td><td>${esc(p.category)}</td></tr>`).join("\n");
-  const cats = CATEGORIES.map((c) => `<a href="/store-lookup?category=${encodeURIComponent(c)}">${esc(c)}</a>`).join(" · ");
+  const chip = (label, href, on) => `<a class="chip${on ? " active" : ""}" href="${href}"${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
+  const cats = [chip("All", "/store-lookup", !category && !q), ...CATEGORIES.map((c) => chip(c, `/store-lookup?category=${encodeURIComponent(c)}`, c === category))].join("");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,14 +56,14 @@ function html(origin, { q, category, products }) {
 <h1>Store lookup: units and stock</h1>
 <p>${products.length} products${q ? ` matching “${esc(q)}”` : ""}${category ? ` in ${esc(category)}` : ""}. Prices and stock are demonstration data. “Sold as” is <strong>each</strong> (one item) or <strong>pack</strong> (fixed contents). Quantities you order are in units of sale and cannot exceed “available”.</p>
 <form class="search" action="/store-lookup" method="get" role="search"><label class="sr-only" for="q">Look up a product</label><input id="q" name="q" type="search" value="${esc(q)}" placeholder="Look up a product, e.g. olive oil" maxlength="100" /><button type="submit">Look up</button></form>
-<p class="muted">Categories: <a href="/store-lookup">All</a> · ${cats}</p>
+<nav class="chips" aria-label="Categories">${cats}</nav>
 <p class="muted">Also as <a href="/catalog.txt">plain text</a> and <a href="/catalog.json">JSON</a>. To build a cart, give the shopper a link like <code>${esc(origin)}/shop.html#items=PRODUCT_ID:PACKS</code>; they review and confirm on the store's page.</p>
-<table class="cart lookup">
+<div class="table-wrap"><table class="cart lookup">
 <thead><tr><th>Product id</th><th>Name</th><th>Sold as</th><th>Contents</th><th>Price (one pack or item)</th><th>Unit price</th><th>Stock</th><th>Max per order</th><th>Category</th></tr></thead>
 <tbody>
 ${rows || '<tr><td colspan="9">No matching products.</td></tr>'}
 </tbody>
-</table>
+</table></div>
 </main>
 </body>
 </html>
